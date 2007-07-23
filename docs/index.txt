@@ -1,0 +1,15 @@
+Tempita
++++++++
+
+:author: Ian Bicking <ianb@colorstudy.com>
+
+Status & License
+================
+
+Tempita is available under an `MIT-style license <license.html>`_.
+
+It is actively developed, but not an ambitious project.  It does not
+seek to take over the templating world, or adopt many new features.
+I just wanted a small templating language for cases when ``%`` and
+``string.Template`` weren't enough.
+
