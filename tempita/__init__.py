@@ -33,7 +33,7 @@ import re
 import sys
 import cgi
 import urllib
-from paste.util.looper import looper
+from _looper import looper
 
 __all__ = ['TemplateError', 'Template', 'sub', 'HTMLTemplate',
            'sub_html', 'html', 'bunch']
