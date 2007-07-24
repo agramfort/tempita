@@ -240,7 +240,7 @@ some convenient ways.  You basically use it like::
       ...
     {{endfor}}
 
-The ``loop`` object has a bunch of useful methods and attributes::
+The ``loop`` object has a bunch of useful methods and attributes:
 
     ``.index``
       The index of the current item (like you'd get with
@@ -313,7 +313,7 @@ An example::
     >>> tmpl.substitute(locals())
     'Hi <img src="bob.jpg">!\n<a href="Attack!&quot;&gt;"><i>Homepage</i></a>'
 
-It also adds a couple handy builtins::
+It also adds a couple handy builtins:
 
     ``html_quote(value)``:
         HTML quotes the value.  Turns all unicode values into
@@ -366,7 +366,7 @@ Still To Do
   like ``for (a, b), c in x``.  They should.
 
 * There's no way to handle exceptions, except in your ``py:`` code.
-  I'm not sure what there should be.
+  I'm not sure what there should be, if anything.
 
 * Probably I should try to dedent ``py:`` code.
 
@@ -377,8 +377,8 @@ Still To Do
        template code...
     {{endcall}}
 
-  That means ``{{expr(result_of_template_code)}}``.  But maybe there
-  should be another assignment form too, if you don't want to
+  That would mean ``{{expr(result_of_template_code)}}``.  But maybe
+  there should be another assignment form too, if you don't want to
   immediately put the output in the code.  And then you get methods.
   Is this going too far?
 
