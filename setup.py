@@ -15,9 +15,9 @@ handy little templating language for when your project outgrows
 Python in strings, and it doesn't do much else.
 
 You can read about the `language
-<file:///home/ianb/src/Tempita/docs/html/#the-language>`_, the
-`interface <file:///home/ianb/src/Tempita/docs/html/#the-interface>`_,
-and there's nothing more to learn about it.
+<http://pythonpaste.org/tempita/#the-language>`_, the `interface
+<http://pythonpaste.org/tempita/#the-interface>`_, and there's nothing
+more to learn about it.
 
 0.1 is the initial release.
 """,
