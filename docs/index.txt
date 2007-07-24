@@ -359,6 +359,36 @@ you can add the ``svn:external``
 to a tag).  It's about 730 lines of code (not counting comments and
 whatnot), and 30Kb (60Kb with .pyc files).
 
+Command-line Use
+================
+
+There's also a command-line version of the program.  In Python 2.5 you
+can run ``python -m tempita``; in previous versions you must run
+``python path/to/tempita/__init__.py``.
+
+The usage::
+
+    Usage: __init__.py [OPTIONS] TEMPLATE arg=value
+
+    Use py:arg=value to set a Python value; otherwise all values are
+    strings.
+
+
+    Options:
+      --version             show program's version number and exit
+      -h, --help            show this help message and exit
+      -o FILENAME, --output=FILENAME
+                            File to write output to (default stdout)
+      --html                Use HTML style filling (including automatic HTML
+                            quoting)
+      --env                 Put the environment in as top-level variables
+
+So you can use it like::
+
+    $ python2.5 -m tempita --html mytemplate.tmpl \
+    >     var1="$var1" var2="$var2" > mytemplate.html
+
+
 Still To Do
 ===========
 
