@@ -7,6 +7,12 @@ setup(name='Tempita',
       version=version,
       description="A very small text templating language",
       long_description="""\
+Tempita is a small templating language for text substitution.
+
+This isn't meant to be the Next Big Thing in templating; it's just a
+handy little templating language for when your project outgrows
+``string.Template`` or ``%`` substitution.  It's small, it embeds
+Python in strings, and it doesn't do much else.
 """,
       classifiers=[
         'Development Status :: 4 - Beta',
@@ -17,7 +23,7 @@ setup(name='Tempita',
       keywords='templating template language html',
       author='Ian Bicking',
       author_email='ianb@colorstudy.com',
-      url='',
+      url='http://pythonpaste.org/tempita/',
       license='MIT',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,

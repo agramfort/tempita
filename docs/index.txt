@@ -15,6 +15,10 @@ seek to take over the templating world, or adopt many new features.
 I just wanted a small templating language for cases when ``%`` and
 ``string.Template`` weren't enough.
 
+Discussion should go the the `Paste-users mailing list
+<http://pythonpaste.org/community/mailing-list.html>`_ and bugs in the
+`Paste Trac instance <http://trac.pythonpaste.org/>`_.
+
 Why Another Templating Language
 ===============================
 
@@ -345,6 +349,15 @@ Two other methods you might want to look at are ``_eval(code, ns,
 pos)`` and ``_exec(code, ns, pos)``, which evaluate and execute
 expressions and statements.  You could probably make this language
 safe with appropriate implementations of those methods.
+
+Including Tempita In Your Project
+=================================
+
+If you don't want to use Setuptools and have Tempita as a dependency,
+you can add the ``svn:external``
+``http://svn.pythonpaste.org/Tempita/trunk/tempita tempita`` (or link
+to a tag).  It's about 730 lines of code (not counting comments and
+whatnot), and 30Kb (60Kb with .pyc files).
 
 Still To Do
 ===========
