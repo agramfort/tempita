@@ -20,6 +20,10 @@ You can read about the `language
 more to learn about it.
 
 0.1 is the initial release.
+
+You can install from the `svn repository
+<http://svn.pythonpaste.org/Tempita/trunk#Tempita-dev>`__ with
+``easy_install Tempita==dev``.
 """,
       classifiers=[
         'Development Status :: 4 - Beta',
