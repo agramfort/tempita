@@ -1,6 +1,8 @@
 Tempita
 +++++++
 
+.. contents::
+
 :author: Ian Bicking <ianb@colorstudy.com>
 
 Status & License
@@ -12,4 +14,184 @@ It is actively developed, but not an ambitious project.  It does not
 seek to take over the templating world, or adopt many new features.
 I just wanted a small templating language for cases when ``%`` and
 ``string.Template`` weren't enough.
+
+Why Another Templating Language
+===============================
+
+Surely the world has enough templating languages?  So why did I write
+another.
+
+I initially used `Cheetah <http://cheetahtemplate.org/>`_ as the
+templating language for `Paste Script
+<http://pythonpaste.org/script/>`_, but this caused quite a few
+problems.  People frequently had problems installing Cheetah because
+it includes a C extension.  Also, the errors and invocation can be a
+little confusing.  This might be okay for something that used
+Cheetah's features extensively, except that the templating was a very
+minor feature of the system, and many people didn't even understand or
+care about where templating came into the system.
+
+At the same time, I was starting to create reusable WSGI components
+that had some templating in them.  Not a lot of templating, but enough
+that ``string.Template`` had become too complicated -- I need if
+statements and loops.
+
+Given this, I started looking around for a very small templating
+language, and I didn't like anything I found.  Many of them seemed
+awkward or like toys that were more about the novelty of the
+implementation than the utility of the language.
+
+So one night when I felt like coding but didn't feel like working on
+anything I was already working on, I wrote this.  It was first called
+``paste.util.template``, but I decided it deserved a life of its own,
+hence Tempita.
+
+The Interface
+=============
+
+The interface is intended to look a lot like ``string.Template``.  You
+can create a template object like::
+
+    >>> import tempita
+    >>> tmpl = tempita.Template("""Hello {{name}}""")
+    >>> tmpl.substitute(name='Bob')
+    'Hello Bob'
+
+Or if you want to skip the class::
+
+    >>> tempita.sub("Hello {{name}}", name='Alice')
+    'Hello Alice'
+
+Note that the language allows arbitrary Python to be executed, so
+your templates must be trusted.
+
+You can give a name to your template, which is handy when there is an
+error (the name will be displayed)::
+
+    >>> tmpl = tempita.Template('Hi {{name}}', name='tmpl')
+    >>> tmpl.substitute()
+    Traceback (most recent call last):
+        ...
+    NameError: name 'name' is not defined at line 1 column 6 in file tmpl
+
+You can also give a namespace to use by default, which
+``.substitute(...)`` will augment::
+
+    >>> tmpl = tempita.Template(
+    ...     'Hi {{upper(name)}}',
+    ...     namespace=dict(upper=lambda s: s.upper()))
+    >>> tmpl.substitute(name='Joe')
+    'Hi JOE'
+
+Lastly, you can give a dictionary-like object as the argument to
+``.substitute``, like::
+
+    >>> name = 'Jane'
+    >>> tmpl.substitute(locals())
+    'Hi JANE'
+
+There's also an `HTMLTemplate`_ class that is more appropriate for
+templates that produce HTML.
+
+Unicode
+-------
+
+Tempita tries to handle unicode gracefully, for some value of
+"graceful".  ``Template`` objects have a ``default_encoding``
+attribute.  It will try to use that encoding whenever ``unicode`` and
+``str`` objects are mixed in the template.  E.g.::
+
+    >>> tmpl = tempita.Template(u'Hi {{name}}')
+    >>> tmpl.substitute(name='Jos\xc3\xa9')
+    u'Hi Jos\xe9'
+    >>> tmpl = tempita.Template('Hi {{name}}')
+    >>> tmpl.substitute(name=u'Jos\xe9')
+    'Hi Jos\xc3\xa9'
+
+The Language
+============
+
+The language is fairly simple; all the constructs look like
+``{{stuff}}``.  
+
+To insert a variable or expression, use ``{{expression}}``.  You can't
+use ``}}`` in your expression, but if it comes up just use ``} }``
+(put a space between them).  You can pass your expression through
+*filters* with ``{{expression | filter}}``, for instance
+``{{expression | repr}}``.  This is entirely equivalent to
+``{{repr(expression)}}``.  But it might look nicer to some people; I
+took it from Django because I liked it.  There's a shared namespace,
+so ``repr`` is just an object in the namespace.
+
+If you want to have ``{{`` or ``}}`` in your template, you must use
+the built-in variables like ``{{start_braces}}`` and
+``{{end_braces}}``.  There's no escape character.
+
+You can do an if statement with::
+
+    {{if condition}}
+      true stuff
+    {{elif other_condition}}
+      other stuff
+    {{else}}
+      final stuff
+    {{endif}}
+
+Some of the blank lines will be removed when, as in this case, they
+only contain a single directive.  A trailing ``:`` is optional.
+
+Loops should be unsurprising::
+
+    {{for a, b in items}}
+        {{a}} = {{b | repr}}
+    {{endfor}}
+
+For anything more complicated, you can use blocks of Python code,
+like::
+
+    {{py:x = 1}}
+    
+    {{py:
+    lots of code
+    }}
+
+The first form allows statements, like an assignment or raising an
+exception.  The second form is for multiple lines.  If you have
+multiple lines, then ``{{py:`` must be on a line of its own and the
+code can't be indented (except for normal indenting in ``def x():``
+etc).
+
+These can't output any values, but they can calculate values and
+define functions.  So you can do something like::
+
+    {{py:
+    def pad(s):
+        return s + ' '*(20-len(s))
+    }}
+    {{for name, value in kw.items()}}
+    {{s | pad}} {{value | repr}}
+    {{endfor}}
+
+The last construct is for setting defaults in your template, like::
+
+    {{default width = 100}}
+
+You can use this so that the ``width`` variable will always have a
+value in your template (the number ``100``).  If someone calls
+``tmpl.substitute(width=200)`` then this will have no effect; only if
+the variable is undefined will this default matter.
+
+As a last detail ``{{# comments...}}`` doesn't do anything at all,
+because it is a comment.
+
+Still To Do
+===========
+
+Currently nested structures in ``for`` loop assignments don't work,
+like ``for (a, b), c in x``.  They should.
+
+There's no way to handle exceptions, except in your ``py:`` code.  I'm
+not sure what there should be.
+
+Probably I should try to dedent ``py:`` code.
 

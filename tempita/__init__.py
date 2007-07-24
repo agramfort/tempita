@@ -1,10 +1,9 @@
 """
 A small templating language
 
-This implements a small templating language for use internally in
-Paste and Paste Script.  This language implements if/elif/else,
-for/continue/break, expressions, and blocks of Python code.  The
-syntax is::
+This implements a small templating language.  This language implements
+if/elif/else, for/continue/break, expressions, and blocks of Python
+code.  The syntax is::
 
   {{any expression (function calls etc)}}
   {{any expression | filter}}
@@ -106,7 +105,11 @@ class Template(object):
                     "You can only give positional *or* keyword arguments")
             if len(args) > 1:
                 raise TypeError(
-                    "You can only give on positional argument")
+                    "You can only give one positional argument")
+            if not hasattr(args[0], 'items'):
+                raise TypeError(
+                    "If you pass in a single argument, you must pass in a dictionary-like object (with a .items() method); you gave %r"
+                    % (args[0],))
             kw = args[0]
         ns = self.default_namespace.copy()
         ns.update(self.namespace)
@@ -230,7 +233,14 @@ class Template(object):
                 except UnicodeDecodeError:
                     value = str(value)
             else:
-                value = str(value)
+                if not isinstance(value, basestring):
+                    if hasattr(value, '__unicode__'):
+                        value = unicode(value)
+                    else:
+                        value = str(value)
+                if (isinstance(value, unicode)
+                    and self.default_encoding):
+                    value = value.encode(self.default_encoding)
         except:
             exc_info = sys.exc_info()
             e = exc_info[1]
@@ -238,13 +248,21 @@ class Template(object):
             raise exc_info[0], e, exc_info[2]
         else:
             if self._unicode and isinstance(value, str):
-                if not self.decode_encoding:
+                if not self.default_encoding:
                     raise UnicodeDecodeError(
                         'Cannot decode str value %r into unicode '
                         '(no default_encoding provided)' % value)
-                value = value.decode(self.default_encoding)
+                try:
+                    value = value.decode(self.default_encoding)
+                except UnicodeDecodeError, e:
+                    raise UnicodeDecodeError(
+                        e.encoding,
+                        e.object,
+                        e.start,
+                        e.end,
+                        e.reason + ' in string %r' % value)
             elif not self._unicode and isinstance(value, unicode):
-                if not self.decode_encoding:
+                if not self.default_encoding:
                     raise UnicodeEncodeError(
                         'Cannot encode unicode value %r into str '
                         '(no default_encoding provided)' % value)
