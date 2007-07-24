@@ -770,7 +770,6 @@ def fill_command(args=None):
         sys.stdout.write(result)
 
 if __name__ == '__main__':
-    from paste.util.template import fill_command
     fill_command()
         
     
