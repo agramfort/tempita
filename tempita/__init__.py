@@ -33,7 +33,7 @@ import re
 import sys
 import cgi
 import urllib
-from _looper import looper
+from tempita._looper import looper
 
 __all__ = ['TemplateError', 'Template', 'sub', 'HTMLTemplate',
            'sub_html', 'html', 'bunch']
@@ -733,8 +733,7 @@ def fill_command(args=None):
     options, args = parser.parse_args(args)
     if len(args) < 1:
         print 'You must give a template filename'
-        print dir(parser)
-        assert 0
+        sys.exit(2)
     template_name = args[0]
     args = args[1:]
     vars = {}
