@@ -374,6 +374,7 @@ class HTMLTemplate(Template):
         html=html,
         attr=attr,
         url=url,
+        html_quote=html_quote,
         ))
 
     def _repr(self, value, pos):

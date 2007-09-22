@@ -412,3 +412,11 @@ Still To Do
   immediately put the output in the code.  And then you get methods.
   Is this going too far?
 
+News
+====
+
+svn trunk
+---------
+
+* Added ``html_quote`` to default functions provided in
+  ``HTMLTemplate``
