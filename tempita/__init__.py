@@ -74,9 +74,27 @@ class Template(object):
 
     default_encoding = 'utf8'
 
-    def __init__(self, content, name=None, namespace=None):
+    def __init__(self, content, name=None, namespace=None, stacklevel=None):
         self.content = content
         self._unicode = isinstance(content, unicode)
+        if name is None and stacklevel is not None:
+            try:
+                caller = sys._getframe(stacklevel)
+            except ValueError:
+                pass
+            else:
+                globals = caller.f_globals
+                lineno = caller.f_lineno
+                if '__file__' in globals:
+                    name = globals['__file__']
+                    if name.endswith('.pyc') or name.endswith('.pyo'):
+                        name = name[:-1]
+                elif '__name__' in globals:
+                    name = globals['__name__']
+                else:
+                    name = '<string>'
+                if lineno:
+                    name += ':%s' % lineno
         self.name = name
         self._parsed = parse(content, name=name)
         if namespace is None:
@@ -112,6 +130,7 @@ class Template(object):
                     % (args[0],))
             kw = args[0]
         ns = self.default_namespace.copy()
+        ns['__name__'] = self.name
         ns.update(self.namespace)
         ns.update(kw)
         result = self._interpret(ns)
