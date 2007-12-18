@@ -419,4 +419,8 @@ svn trunk
 ---------
 
 * Added ``html_quote`` to default functions provided in
-  ``HTMLTemplate``
+  ``HTMLTemplate``.
+
+* HTML literals have an ``.__html__()`` method, and the presence of
+  that method is used to determine if values need to be quoted in
+  ``HTMLTemplate``.

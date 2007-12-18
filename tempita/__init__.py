@@ -47,13 +47,13 @@ class TemplateError(Exception):
     """
 
     def __init__(self, message, position, name=None):
-        self.message = message
+        Exception.__init__(self, message)
         self.position = position
         self.name = name
 
     def __str__(self):
         msg = '%s at line %s column %s' % (
-            self.message, self.position[0], self.position[1])
+            ' '.join(self.args), self.position[0], self.position[1])
         if self.name:
             msg += ' in %s' % self.name
         return msg
@@ -224,7 +224,7 @@ class Template(object):
         except:
             exc_info = sys.exc_info()
             e = exc_info[1]
-            if getattr(e, 'args'):
+            if getattr(e, 'args', None):
                 arg0 = e.args[0]
             else:
                 arg0 = str(e)
@@ -347,11 +347,15 @@ class html(object):
         self.value = value
     def __str__(self):
         return self.value
+    def __html__(self):
+        return self.value
     def __repr__(self):
         return '<%s %r>' % (
             self.__class__.__name__, self.value)
 
-def html_quote(value):
+def html_quote(value, force=True):
+    if not force and hasattr(value, '__html__'):
+        return value.__html__()
     if value is None:
         return ''
     if not isinstance(value, basestring):
@@ -397,11 +401,16 @@ class HTMLTemplate(Template):
         ))
 
     def _repr(self, value, pos):
-        plain = Template._repr(self, value, pos)
-        if isinstance(value, html):
-            return plain
+        if hasattr(value, '__html__'):
+            value = value.__html__()
+            quote = False
         else:
+            quote = True
+        plain = Template._repr(self, value, pos)
+        if quote:
             return html_quote(plain)
+        else:
+            return plain
 
 def sub_html(content, **kw):
     name = kw.get('__name')
