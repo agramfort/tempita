@@ -415,8 +415,8 @@ Still To Do
 News
 ====
 
-svn trunk
----------
+0.2
+---
 
 * Added ``html_quote`` to default functions provided in
   ``HTMLTemplate``.
