@@ -1,6 +1,12 @@
 Tempita
 +++++++
 
+.. toctree::
+   :maxdepth: 1
+
+   license
+   modules/tempita
+
 .. contents::
 
 :author: Ian Bicking <ianb@colorstudy.com>
