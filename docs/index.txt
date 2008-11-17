@@ -421,6 +421,11 @@ Still To Do
 News
 ====
 
+svn trunk
+---------
+
+* Make error message annotation slightly more robust
+
 0.2
 ---
 

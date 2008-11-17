@@ -238,7 +238,10 @@ class Template(object):
         except:
             exc_info = sys.exc_info()
             e = exc_info[1]
-            e.args = (self._add_line_info(e.args[0], pos),)
+            if e.args:
+                e.args = (self._add_line_info(e.args[0], pos),)
+            else:
+                e.args = (self._add_line_info(None, pos),)
             raise exc_info[0], e, exc_info[2]
 
     def _repr(self, value, pos):
