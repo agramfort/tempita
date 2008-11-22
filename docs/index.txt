@@ -207,7 +207,7 @@ function; the implementation for ``Template.from_filename(...)`` is::
             get_template=from_template.get_template)
 
 You can also pass in a constructor argument `default_inherit`, which
-will be the inherited template name when no ``{{inherit}}` is in the
+will be the inherited template name when no ``{{inherit}}`` is in the
 template.
 
 The inherited template is executed with a variable ``self``, which
