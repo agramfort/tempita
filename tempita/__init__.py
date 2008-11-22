@@ -644,9 +644,9 @@ def lex(s, name=None, trim_whitespace=True):
         chunks = trim_lex(chunks)
     return chunks
 
-statement_re = re.compile(r'^(?:if |elif |else |for |py:)')
-single_statements = ['endif', 'endfor', 'continue', 'break']
-trail_whitespace_re = re.compile(r'\n[\t ]*$')
+statement_re = re.compile(r'^(?:if |elif |else |for |def |inherit |default |py:)')
+single_statements = ['endif', 'endfor', 'enddef', 'continue', 'break']
+trail_whitespace_re = re.compile(r'\n\r?[\t ]*$')
 lead_whitespace_re = re.compile(r'^[\t ]*\n')
 
 def trim_lex(tokens):
@@ -679,17 +679,25 @@ def trim_lex(tokens):
         if (not isinstance(next, basestring)
             or not isinstance(prev, basestring)):
             continue
-        if ((not prev or trail_whitespace_re.search(prev))
-            and (not next or lead_whitespace_re.search(next))):
+        if ((not prev or trail_whitespace_re.search(prev)
+             or (i == 1 and not prev.strip()))
+            and (not next or lead_whitespace_re.search(next)
+                 or (i == len(tokens)-2 and not next.strip()))):
             if prev:
-                m = trail_whitespace_re.search(prev)
-                # +1 to leave the leading \n on:
-                prev = prev[:m.start()+1]
-                tokens[i-1] = prev
+                if i == 1 and not prev.strip():
+                    tokens[i-1] = ''
+                else:
+                    m = trail_whitespace_re.search(prev)
+                    # +1 to leave the leading \n on:
+                    prev = prev[:m.start()+1]
+                    tokens[i-1] = prev
             if next:
-                m = lead_whitespace_re.search(next)
-                next = next[m.end():]
-                tokens[i+1] = next
+                if i == len(tokens)-2 and not next.strip():
+                    tokens[i+1] = ''
+                else:
+                    m = lead_whitespace_re.search(next)
+                    next = next[m.end():]
+                    tokens[i+1] = next
     return tokens
         
 

@@ -119,6 +119,8 @@ contains a directive/statement (if/for, etc)::
     'x=1\n'
     >>> sub('{{if 1}}\nx={{x}}\n{{endif}}\n', x=1)
     'x=1\n'
+    >>> sub('  {{if 1}}  \nx={{x}}\n  {{endif}}  \n', x=1)
+    'x=1\n'
 
 There is a special directive that will create a default value
 for a variable, if no value is given::
@@ -160,8 +162,7 @@ Then we'll define a template that inherits::
     ... ''')
     >>> print tmpl.substitute(master='test').strip()
     This is the parent test. The block: some text
-    Then the body: 
-    Hi there!
+    Then the body: Hi there!
     >>> tmpl2 = Template('''\
     ... {{def block(arg='hi_'+master):}}hey {{master}}: {{arg}}{{enddef}}
     ... ''', get_template=get_template, default_inherit='super_test')

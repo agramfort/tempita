@@ -473,7 +473,9 @@ svn trunk
 
 * Added ``{{inherit}}`` and ``{{def}}`` for doing template inheritance.
 
-* Make error message annotation slightly more robust
+* Make error message annotation slightly more robust.
+
+* Fix whitespace stripping for the beginning and end of lines.
 
 0.2
 ---
