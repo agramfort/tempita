@@ -1,4 +1,7 @@
-The templating language is fairly simple, just {{stuff}}.  For
+Normal templating
+=================
+
+The templating language is fairly simple, just ``{{stuff}}``.  For
 example::
 
     >>> from tempita import Template, sub
@@ -117,7 +120,7 @@ contains a directive/statement (if/for, etc)::
     >>> sub('{{if 1}}\nx={{x}}\n{{endif}}\n', x=1)
     'x=1\n'
 
-Lastly, there is a special directive that will create a default value
+There is a special directive that will create a default value
 for a variable, if no value is given::
 
     >>> sub('{{default x=1}}{{x}}', x=2)
@@ -134,3 +137,45 @@ And comments work::
 
     >>> sub('Test=x{{#whatever}}')
     'Test=x'
+
+Inheritance
+===========
+
+You can have inherited templates; you have to pass in some kind of
+get_template function, for example::
+
+    >>> def get_template(name, from_template):
+    ...     return globals()[name]
+
+Then we'll define a template that inherits::
+
+    >>> tmpl = Template('''\
+    ... {{inherit "super_"+master}}
+    ... Hi there!
+    ... {{def block}}some text{{enddef}}
+    ... ''', get_template=get_template)
+    >>> super_test = Template('''\
+    ... This is the parent {{master}}. The block: {{self.block}}
+    ... Then the body: {{self.body}}
+    ... ''')
+    >>> print tmpl.substitute(master='test').strip()
+    This is the parent test. The block: some text
+    Then the body: 
+    Hi there!
+    >>> tmpl2 = Template('''\
+    ... {{def block(arg='hi_'+master):}}hey {{master}}: {{arg}}{{enddef}}
+    ... ''', get_template=get_template, default_inherit='super_test')
+    >>> print tmpl2.substitute(master='test2').strip()
+    This is the parent test2. The block: hey test2: hi_test2
+    Then the body:
+    >>> super_test = Template('''\
+    ... The block: {{self.block('blah')}}
+    ... ''')
+    >>> print tmpl2.substitute(master='test2').strip()
+    The block: hey test2: blah
+    >>> super_test = Template('''\
+    ... Something: {{self.get.something('hi')}}
+    ... ''')
+    >>> print tmpl2.substitute(master='test2').strip()
+    Something:
+

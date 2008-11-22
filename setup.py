@@ -19,8 +19,6 @@ You can read about the `language
 <http://pythonpaste.org/tempita/#the-interface>`_, and there's nothing
 more to learn about it.
 
-0.1 is the initial release.
-
 You can install from the `svn repository
 <http://svn.pythonpaste.org/Tempita/trunk#Tempita-dev>`__ with
 ``easy_install Tempita==dev``.
@@ -36,7 +34,7 @@ You can install from the `svn repository
       author_email='ianb@colorstudy.com',
       url='http://pythonpaste.org/tempita/',
       license='MIT',
-      packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
+      packages=['tempita'],
       include_package_data=True,
       zip_safe=True,
       )

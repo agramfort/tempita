@@ -186,7 +186,54 @@ Loops should be unsurprising::
         {{a}} = {{b | repr}}
     {{endfor}}
 
-See?  Unsurprising.
+See?  Unsurprising.  Note that nested tuples (like ``for a, (b, c)
+in...``) are not supported.
+
+inherit & def
+-------------
+
+You can do template inheritance.  To inherit from another template
+do::
+
+    {{inherit "some_other_file"}}
+
+From Python you must also pass in, to `Template`, a `get_template`
+function; the implementation for ``Template.from_filename(...)`` is::
+
+    def get_file_template(name, from_template):
+        path = os.path.join(from_template.name, name)
+        return from_template.__class__.from_filename(
+            path, namespace=from_template.namespace,
+            get_template=from_template.get_template)
+
+You can also pass in a constructor argument `default_inherit`, which
+will be the inherited template name when no ``{{inherit}}` is in the
+template.
+
+The inherited template is executed with a variable ``self``, which
+includes ``self.body`` which is the text of the child template.  You
+can also put in definitions in the child, like::
+
+    {{def sidebar}}
+      sidebar links...
+    {{enddef}}
+
+Then in the parent/inherited template::
+
+    {{self.sidebar}}
+
+If you want to make the sidebar method optional, in the inherited
+template use::
+
+    {{self.get.sidebar}}
+
+If ``sidebar`` is not defined then this will just result in an object
+that shows up as the empty string (but is also callable).
+
+This can be called like ``self.sidebar`` or ``self.sidebar()`` -- defs
+can have arguments (like ``{{def sidebar(name)}}``), but when there
+are no arguments you can leave off ``()`` (in the call and
+definition).
 
 Python blocks
 -------------
@@ -423,6 +470,8 @@ News
 
 svn trunk
 ---------
+
+* Added ``{{inherit}}`` and ``{{def}}`` for doing template inheritance.
 
 * Make error message annotation slightly more robust
 

@@ -33,6 +33,9 @@ import re
 import sys
 import cgi
 import urllib
+import os
+import tokenize
+from cStringIO import StringIO
 from tempita._looper import looper
 
 __all__ = ['TemplateError', 'Template', 'sub', 'HTMLTemplate',
@@ -52,8 +55,10 @@ class TemplateError(Exception):
         self.name = name
 
     def __str__(self):
-        msg = '%s at line %s column %s' % (
-            ' '.join(self.args), self.position[0], self.position[1])
+        msg = ' '.join(self.args)
+        if self.position:
+            msg = '%s at line %s column %s' % (
+                msg, self.position[0], self.position[1])
         if self.name:
             msg += ' in %s' % self.name
         return msg
@@ -64,6 +69,12 @@ class _TemplateContinue(Exception):
 class _TemplateBreak(Exception):
     pass
 
+def get_file_template(name, from_template):
+    path = os.path.join(from_template.name, name)
+    return from_template.__class__.from_filename(
+        path, namespace=from_template.namespace,
+        get_template=from_template.get_template)
+
 class Template(object):
 
     default_namespace = {
@@ -73,8 +84,10 @@ class Template(object):
         }
 
     default_encoding = 'utf8'
+    default_inherit = None
 
-    def __init__(self, content, name=None, namespace=None, stacklevel=None):
+    def __init__(self, content, name=None, namespace=None, stacklevel=None,
+                 get_template=None, default_inherit=None):
         self.content = content
         self._unicode = isinstance(content, unicode)
         if name is None and stacklevel is not None:
@@ -100,14 +113,19 @@ class Template(object):
         if namespace is None:
             namespace = {}
         self.namespace = namespace
+        self.get_template = get_template
+        if default_inherit is not None:
+            self.default_inherit = default_inherit
 
-    def from_filename(cls, filename, namespace=None, encoding=None):
+    def from_filename(cls, filename, namespace=None, encoding=None,
+                      default_inherit=None, get_template=get_file_template):
         f = open(filename, 'rb')
         c = f.read()
         f.close()
         if encoding:
             c = c.decode(encoding)
-        return cls(content=c, name=filename, namespace=namespace)
+        return cls(content=c, name=filename, namespace=namespace,
+                   default_inherit=default_inherit, get_template=get_template)
 
     from_filename = classmethod(from_filename)
 
@@ -133,24 +151,48 @@ class Template(object):
         ns['__name__'] = self.name
         ns.update(self.namespace)
         ns.update(kw)
-        result = self._interpret(ns)
+        result, defs, inherit = self._interpret(ns)
+        if not inherit:
+            inherit = self.default_inherit
+        if inherit:
+            result = self._interpret_inherit(result, defs, inherit, ns)
         return result
 
     def _interpret(self, ns):
         __traceback_hide__ = True
         parts = []
-        self._interpret_codes(self._parsed, ns, out=parts)
-        return ''.join(parts)
+        defs = {}
+        self._interpret_codes(self._parsed, ns, out=parts, defs=defs)
+        if '__inherit__' in defs:
+            inherit = defs.pop('__inherit__')
+        else:
+            inherit = None
+        return ''.join(parts), defs, inherit
 
-    def _interpret_codes(self, codes, ns, out):
+    def _interpret_inherit(self, body, defs, inherit_template, ns):
+        __traceback_hide__ = True
+        if not self.get_template:
+            raise TemplateError(
+                'You cannot use inheritance without passing in get_template',
+                position=None, name=self.name)
+        templ = self.get_template(inherit_template, self)
+        self_ = TemplateObject(self.name)
+        for name, value in defs.items():
+            setattr(self_, name, value)
+        self_.body = body
+        ns = ns.copy()
+        ns['self'] = self_
+        return templ.substitute(ns)
+
+    def _interpret_codes(self, codes, ns, out, defs):
         __traceback_hide__ = True
         for item in codes:
             if isinstance(item, basestring):
                 out.append(item)
             else:
-                self._interpret_code(item, ns, out)
+                self._interpret_code(item, ns, out, defs)
 
-    def _interpret_code(self, code, ns, out):
+    def _interpret_code(self, code, ns, out, defs):
         __traceback_hide__ = True
         name, pos = code[0], code[1]
         if name == 'py':
@@ -162,10 +204,10 @@ class Template(object):
         elif name == 'for':
             vars, expr, content = code[2], code[3], code[4]
             expr = self._eval(expr, ns, pos)
-            self._interpret_for(vars, expr, content, ns, out)
+            self._interpret_for(vars, expr, content, ns, out, defs)
         elif name == 'cond':
             parts = code[2:]
-            self._interpret_if(parts, ns, out)
+            self._interpret_if(parts, ns, out, defs)
         elif name == 'expr':
             parts = code[2].split('|')
             base = self._eval(parts[0], ns, pos)
@@ -178,12 +220,22 @@ class Template(object):
             if var not in ns:
                 result = self._eval(expr, ns, pos)
                 ns[var] = result
+        elif name == 'inherit':
+            expr = code[2]
+            value = self._eval(expr, ns, pos)
+            defs['__inherit__'] = value
+        elif name == 'def':
+            name = code[2]
+            signature = code[3]
+            parts = code[4]
+            ns[name] = defs[name] = TemplateDef(self, name, signature, body=parts, ns=ns,
+                                                pos=pos)
         elif name == 'comment':
             return
         else:
             assert 0, "Unknown code: %r" % name
 
-    def _interpret_for(self, vars, expr, content, ns, out):
+    def _interpret_for(self, vars, expr, content, ns, out, defs):
         __traceback_hide__ = True
         for item in expr:
             if len(vars) == 1:
@@ -196,13 +248,13 @@ class Template(object):
                 for name, value in zip(vars, item):
                     ns[name] = value
             try:
-                self._interpret_codes(content, ns, out)
+                self._interpret_codes(content, ns, out, defs)
             except _TemplateContinue:
                 continue
             except _TemplateBreak:
                 break
 
-    def _interpret_if(self, parts, ns, out):
+    def _interpret_if(self, parts, ns, out, defs):
         __traceback_hide__ = True
         # @@: if/else/else gets through
         for part in parts:
@@ -213,13 +265,17 @@ class Template(object):
             else:
                 result = self._eval(part[2], ns, pos)
             if result:
-                self._interpret_codes(part[3], ns, out)
+                self._interpret_codes(part[3], ns, out, defs)
                 break
 
     def _eval(self, code, ns, pos):
         __traceback_hide__ = True
         try:
-            value = eval(code, ns)
+            try:
+                value = eval(code, ns)
+            except SyntaxError, e:
+                raise SyntaxError(
+                    'invalid syntax in expression: %s' % code)
             return value
         except:
             exc_info = sys.exc_info()
@@ -420,6 +476,114 @@ def sub_html(content, **kw):
     return tmpl.substitute(kw)
     return result
 
+
+class TemplateDef(object):
+    def __init__(self, template, func_name, func_signature,
+                 body, ns, pos, bound_self=None):
+        self._template = template
+        self._func_name = func_name
+        self._func_signature = func_signature
+        self._body = body
+        self._ns = ns
+        self._pos = pos
+        self._bound_self = bound_self
+
+    def __repr__(self):
+        return '<tempita function %s(%s) at %s:%s>' % (
+            self._func_name, self._func_signature,
+            self._template.name, self._pos)
+
+    def __str__(self):
+        return self()
+
+    def __call__(self, *args, **kw):
+        values = self._parse_signature(args, kw)
+        ns = self._ns.copy()
+        ns.update(values)
+        if self._bound_self is not None:
+            ns['self'] = self._bound_self
+        out = []
+        subdefs = {}
+        self._template._interpret_codes(self._body, ns, out, subdefs)
+        return ''.join(out)
+
+    def __get__(self, obj, type=None):
+        if obj is None:
+            return self
+        return self.__class__(
+            self._template, self._func_name, self._func_signature,
+            self._body, self._ns, self._pos, bound_self=obj)
+
+    def _parse_signature(self, args, kw):
+        values = {}
+        sig_args, var_args, var_kw, defaults = self._func_signature
+        extra_kw = {}
+        for name, value in kw.items():
+            if not var_kw and name not in sig_args:
+                raise TypeError(
+                    'Unexpected argument %s' % name)
+            if name in sig_args:
+                values[sig_args] = value
+            else:
+                extra_kw[name] = value
+        args = list(args)
+        sig_args = list(sig_args)
+        while args:
+            while sig_args and sig_args[0] in values:
+                sig_args.pop(0)
+            if sig_args:
+                name = sig_args.pop(0)
+                values[name] = args.pop(0)
+            elif var_args:
+                values[var_args] = tuple(args)
+                break
+            else:
+                raise TypeError(
+                    'Extra position arguments: %s' 
+                    % ', '.join(repr(v) for v in args))
+        for name, value_expr in defaults.items():
+            if name not in values:
+                values[name] = self._template._eval(
+                    value_expr, self._ns, self._pos)
+        for name in sig_args:
+            if name not in values:
+                raise TypeError(
+                    'Missing argument: %s' % name)
+        if var_kw:
+            values[var_kw] = extra_kw
+        return values
+
+class TemplateObject(object):
+    def __init__(self, name):
+        self.__name = name
+        self.get = TemplateObjectGetter(self)
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__, self.__name)
+
+class TemplateObjectGetter(object):
+    def __init__(self, template_obj):
+        self.__template_obj = template_obj
+    def __getattr__(self, attr):
+        return getattr(self.__template_obj, attr, Empty)
+    def __repr__(self):
+        return '<%s around %r>' % (self.__class__.__name__, self.__template_obj)
+
+class _Empty(object):
+    def __call__(self, *args, **kw):
+        return self
+    def __str__(self):
+        return ''
+    def __repr__(self):
+        return 'Empty'
+    def __unicode__(self):
+        return u''
+    def __iter__(self):
+        return iter(())
+    def __nonzero__(self):
+        return False
+
+Empty = _Empty()
+del _Empty
 
 ############################################################
 ## Lexing and Parsing
@@ -623,7 +787,7 @@ def parse_expr(tokens, name, context=()):
         raise TemplateError(
             '%s with no expression' % expr,
             position=pos, name=name)
-    elif expr in ('endif', 'endfor'):
+    elif expr in ('endif', 'endfor', 'enddef'):
         raise TemplateError(
             'Unexpected %s' % expr,
             position=pos, name=name)
@@ -631,6 +795,10 @@ def parse_expr(tokens, name, context=()):
         return parse_for(tokens, name, context)
     elif expr.startswith('default '):
         return parse_default(tokens, name, context)
+    elif expr.startswith('inherit '):
+        return parse_inherit(tokens, name, context)
+    elif expr.startswith('def '):
+        return parse_def(tokens, name, context)
     elif expr.startswith('#'):
         return ('comment', pos, tokens[0][0]), tokens[1:]
     return ('expr', pos, tokens[0][0]), tokens[1:]
@@ -730,6 +898,132 @@ def parse_default(tokens, name, context):
             % var, position=pos, name=name)
     expr = parts[1].strip()
     return ('default', pos, var, expr), tokens[1:]
+
+def parse_inherit(tokens, name, context):
+    first, pos = tokens[0]
+    assert first.startswith('inherit ')
+    expr = first.split(None, 1)[1]
+    return ('inherit', pos, expr), tokens[1:]
+
+def parse_def(tokens, name, context):
+    first, start = tokens[0]
+    tokens = tokens[1:]
+    assert first.startswith('def ')
+    first = first.split(None, 1)[1]
+    if first.endswith(':'):
+        first = first[:-1]
+    if '(' not in first:
+        func_name = first
+        sig = ((), None, None, {})
+    elif not first.endswith(')'):
+        raise TemplateError("Function definition doesn't end with ): %s" % first,
+                            position=start, name=name)
+    else:
+        first = first[:-1]
+        func_name, sig_text = first.split('(', 1)
+        sig = parse_signature(sig_text, name, start)
+    context = context + ('def',)
+    content = []
+    while 1:
+        if not tokens:
+            raise TemplateError(
+                'Missing {{enddef}}',
+                position=start, name=name)
+        if (isinstance(tokens[0], tuple)
+            and tokens[0][0] == 'enddef'):
+            return ('def', start, func_name, sig, content), tokens[1:]
+        next, tokens = parse_expr(tokens, name, context)
+        content.append(next)
+
+def parse_signature(sig_text, name, pos):
+    tokens = tokenize.generate_tokens(StringIO(sig_text).readline)
+    sig_args = []
+    var_arg = None
+    var_kw = None
+    defaults = {}
+
+    def get_token(pos=False):
+        try:
+            tok_type, tok_string, (srow, scol), (erow, ecol), line = tokens.next()
+        except StopIteration:
+            return tokenize.ENDMARKER, ''
+        if pos:
+            return tok_type, tok_string, (srow, scol), (erow, ecol)
+        else:
+            return tok_type, tok_string
+    while 1:
+        var_arg_type = None
+        tok_type, tok_string = get_token()
+        if tok_type == tokenize.ENDMARKER:
+            break
+        if tok_type == tokenize.OP and (tok_string == '*' or tok_string == '**'):
+            var_arg_type = tok_string
+            tok_type, tok_string = get_token()
+        if tok_type != tokenize.NAME:
+            raise TemplateError('Invalid signature: (%s)' % sig_text,
+                                position=pos, name=name)
+        var_name = tok_string
+        tok_type, tok_string = get_token()
+        if tok_type == tokenize.ENDMARKER or (tok_type == tokenize.OP and tok_string == ','):
+            if var_arg_type == '*':
+                var_arg = var_name
+            elif var_arg_type == '**':
+                var_kw = var_name
+            else:
+                sig_args.append(var_name)
+            if tok_type == tokenize.ENDMARKER:
+                break
+            continue
+        if var_arg_type is not None:
+            raise TemplateError('Invalid signature: (%s)' % sig_text,
+                                position=pos, name=name)
+        if tok_type == tokenize.OP and tok_string == '=':
+            nest_type = None
+            unnest_type = None
+            nest_count = 0
+            start_pos = end_pos = None
+            parts = []
+            while 1:
+                tok_type, tok_string, s, e = get_token(True)
+                if start_pos is None:
+                    start_pos = s
+                end_pos = e
+                if tok_type == tokenize.ENDMARKER and nest_count:
+                    raise TemplateError('Invalid signature: (%s)' % sig_text,
+                                        position=pos, name=name)
+                if (not nest_count and 
+                    (tok_type == tokenize.ENDMARKER or (tok_type == tokenize.OP and tok_string == ','))):
+                    default_expr = isolate_expression(sig_text, start_pos, end_pos)
+                    defaults[var_name] = default_expr
+                    sig_args.append(var_name)
+                    break
+                parts.append((tok_type, tok_string))
+                if nest_count and tok_type == tokenize.OP and tok_string == nest_type:
+                    nest_count += 1
+                elif nest_count and tok_type == tokenize.OP and tok_string == unnest_type:
+                    nest_count -= 1
+                    if not nest_count:
+                        nest_type = unnest_type = None
+                elif not nest_count and tok_type == tokenize.OP and tok_string in ('(', '[', '{'):
+                    nest_type = tok_string
+                    nest_count = 1
+                    unnest_type = {'(': ')', '[': ']', '{': '}'}[nest_type]
+    return sig_args, var_arg, var_kw, defaults
+
+def isolate_expression(string, start_pos, end_pos):
+    srow, scol = start_pos
+    srow -= 1
+    erow, ecol = end_pos
+    erow -= 1
+    lines = string.splitlines(True)
+    if srow == erow:
+        return lines[srow][scol:ecol]
+    parts = [lines[srow][scol:]]
+    parts.extend(lines[srow+1:erow])
+    if erow < len(lines):
+        # It'll sometimes give (end_row_past_finish, 0)
+        parts.append(lines[erow][:ecol])
+    return ''.join(parts)
 
 _fill_command_usage = """\
 %prog [OPTIONS] TEMPLATE arg=value
