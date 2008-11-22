@@ -457,19 +457,24 @@ Still To Do
   template.  Maybe like::
 
     {{call expr}}
-       template code...
+      template code...
     {{endcall}}
 
   That would mean ``{{expr(result_of_template_code)}}``.  But maybe
   there should be another assignment form too, if you don't want to
-  immediately put the output in the code.  And then you get methods.
-  Is this going too far?
+  immediately put the output in the code.  Probably defs could be used
+  for this, like::
+
+    {{def something}}
+      template code...
+    {{enddef}}
+    {{expr(something)}}
 
 News
 ====
 
-svn trunk
----------
+0.3
+---
 
 * Added ``{{inherit}}`` and ``{{def}}`` for doing template inheritance.
 
