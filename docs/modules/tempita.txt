@@ -17,7 +17,7 @@ HTML Templates
 .. autoclass:: HTMLTemplate
 .. autofunction sub_html
 
-.. autofunction:: html
+.. autoclass:: html
 .. autofunction:: html_quote
 .. autofunction:: url
 .. autofunction:: attr

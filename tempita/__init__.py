@@ -148,7 +148,7 @@ class Template(object):
                     % (args[0],))
             kw = args[0]
         ns = self.default_namespace.copy()
-        ns['__name__'] = self.name
+        ns['__template_name__'] = self.name
         ns.update(self.namespace)
         ns.update(kw)
         result, defs, inherit = self._interpret(ns)

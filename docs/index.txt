@@ -473,6 +473,13 @@ Still To Do
 News
 ====
 
+svn trunk
+---------
+
+* Instead of defining ``__name__`` in template namespaces (which has special
+  rules, and must be a module name) the template name is put into
+  ``__template_name__``.  This became important in Python 2.5.
+
 0.3
 ---
 
