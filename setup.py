@@ -35,6 +35,8 @@ You can install from the `svn repository
       url='http://pythonpaste.org/tempita/',
       license='MIT',
       packages=['tempita'],
+      tests_require=['nose'],
+      test_suite='nose.collector',
       include_package_data=True,
       zip_safe=True,
       )
