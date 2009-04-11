@@ -480,6 +480,8 @@ svn trunk
   rules, and must be a module name) the template name is put into
   ``__template_name__``.  This became important in Python 2.5.
 
+* Fix some issues with \r
+
 0.3
 ---
 

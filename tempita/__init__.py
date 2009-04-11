@@ -770,8 +770,12 @@ def parse_expr(tokens, name, context=()):
     expr = expr.strip()
     if expr.startswith('py:'):
         expr = expr[3:].lstrip(' \t')
-        if expr.startswith('\n'):
-            expr = expr[1:]
+        if expr.startswith('\n') or expr.startswith('\r'):
+            expr = expr.lstrip('\r\n')
+            if '\r' in expr:
+                expr = expr.replace('\r\n', '\n')
+                expr = expr.replace('\r', '')
+            expr += '\n'
         else:
             if '\n' in expr:
                 raise TemplateError(
