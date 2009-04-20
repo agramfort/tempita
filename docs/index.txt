@@ -473,8 +473,8 @@ Still To Do
 News
 ====
 
-svn trunk
----------
+0.4
+---
 
 * Added a ``line_offset`` constructor argument, which can be used to
   adjust the line numbers reported in error messages (e.g., if a
