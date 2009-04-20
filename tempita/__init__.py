@@ -87,7 +87,7 @@ class Template(object):
     default_inherit = None
 
     def __init__(self, content, name=None, namespace=None, stacklevel=None,
-                 get_template=None, default_inherit=None):
+                 get_template=None, default_inherit=None, line_offset=0):
         self.content = content
         self._unicode = isinstance(content, unicode)
         if name is None and stacklevel is not None:
@@ -109,7 +109,7 @@ class Template(object):
                 if lineno:
                     name += ':%s' % lineno
         self.name = name
-        self._parsed = parse(content, name=name)
+        self._parsed = parse(content, name=name, line_offset=line_offset)
         if namespace is None:
             namespace = {}
         self.namespace = namespace
@@ -147,10 +147,10 @@ class Template(object):
                     "If you pass in a single argument, you must pass in a dictionary-like object (with a .items() method); you gave %r"
                     % (args[0],))
             kw = args[0]
-        ns = self.default_namespace.copy()
+        ns = kw
         ns['__template_name__'] = self.name
-        ns.update(self.namespace)
-        ns.update(kw)
+        if self.namespace:
+            ns.update(self.namespace)
         result, defs, inherit = self._interpret(ns)
         if not inherit:
             inherit = self.default_inherit
@@ -272,7 +272,7 @@ class Template(object):
         __traceback_hide__ = True
         try:
             try:
-                value = eval(code, ns)
+                value = eval(code, self.default_namespace, ns)
             except SyntaxError, e:
                 raise SyntaxError(
                     'invalid syntax in expression: %s' % code)
@@ -290,7 +290,7 @@ class Template(object):
     def _exec(self, code, ns, pos):
         __traceback_hide__ = True
         try:
-            exec code in ns
+            exec code in self.default_namespace, ns
         except:
             exc_info = sys.exc_info()
             e = exc_info[1]
@@ -589,7 +589,7 @@ del _Empty
 ## Lexing and Parsing
 ############################################################
 
-def lex(s, name=None, trim_whitespace=True):
+def lex(s, name=None, trim_whitespace=True, line_offset=0):
     """
     Lex a string into chunks:
 
@@ -617,7 +617,7 @@ def lex(s, name=None, trim_whitespace=True):
     last_pos = (1, 1)
     for match in token_re.finditer(s):
         expr = match.group(0)
-        pos = find_position(s, match.end())
+        pos = find_position(s, match.end(), line_offset)
         if expr == '{{' and in_expr:
             raise TemplateError('{{ inside expression', position=pos,
                                 name=name)
@@ -701,12 +701,12 @@ def trim_lex(tokens):
     return tokens
         
 
-def find_position(string, index):
+def find_position(string, index, line_offset):
     """Given a string and index, return (line, column)"""
     leading = string[:index].splitlines()
-    return (len(leading), len(leading[-1])+1)
+    return (len(leading)+line_offset, len(leading[-1])+1)
 
-def parse(s, name=None):
+def parse(s, name=None, line_offset=0):
     r"""
     Parses a string into a kind of AST
 
@@ -756,7 +756,7 @@ def parse(s, name=None):
             ...
         TemplateError: Multi-line py blocks must start with a newline at line 1 column 3
     """
-    tokens = lex(s, name=name)
+    tokens = lex(s, name=name, line_offset=line_offset)
     result = []
     while tokens:
         next, tokens = parse_expr(tokens, name)

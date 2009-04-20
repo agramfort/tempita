@@ -476,6 +476,13 @@ News
 svn trunk
 ---------
 
+* Added a ``line_offset`` constructor argument, which can be used to
+  adjust the line numbers reported in error messages (e.g., if a
+  template is embedded in a file).
+
+* Allow non-dictionary namespace objects (with
+  ``tmpl.substitute(namespace)`` (in Python 2.5+).
+
 * Instead of defining ``__name__`` in template namespaces (which has special
   rules, and must be a module name) the template name is put into
   ``__template_name__``.  This became important in Python 2.5.
