@@ -473,6 +473,11 @@ Still To Do
 News
 ====
 
+hg tip
+------
+
+* Fixed bug where file-relative filenames wouldn't work well.
+
 0.4
 ---
 
