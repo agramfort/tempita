@@ -32,11 +32,12 @@ If there are syntax errors ``TemplateError`` will be raised.
 import re
 import sys
 import cgi
-import urllib
+from urllib import quote as url_quote
 import os
 import tokenize
 from cStringIO import StringIO
 from tempita._looper import looper
+from tempita.compat3 import bytes, basestring_, next, is_unicode, coerce_text
 
 __all__ = ['TemplateError', 'Template', 'sub', 'HTMLTemplate',
            'sub_html', 'html', 'bunch']
@@ -89,7 +90,7 @@ class Template(object):
     def __init__(self, content, name=None, namespace=None, stacklevel=None,
                  get_template=None, default_inherit=None, line_offset=0):
         self.content = content
-        self._unicode = isinstance(content, unicode)
+        self._unicode = is_unicode(content)
         if name is None and stacklevel is not None:
             try:
                 caller = sys._getframe(stacklevel)
@@ -177,7 +178,7 @@ class Template(object):
                 position=None, name=self.name)
         templ = self.get_template(inherit_template, self)
         self_ = TemplateObject(self.name)
-        for name, value in defs.items():
+        for name, value in defs.iteritems():
             setattr(self_, name, value)
         self_.body = body
         ns = ns.copy()
@@ -187,7 +188,7 @@ class Template(object):
     def _interpret_codes(self, codes, ns, out, defs):
         __traceback_hide__ = True
         for item in codes:
-            if isinstance(item, basestring):
+            if isinstance(item, basestring_):
                 out.append(item)
             else:
                 self._interpret_code(item, ns, out, defs)
@@ -258,7 +259,7 @@ class Template(object):
         __traceback_hide__ = True
         # @@: if/else/else gets through
         for part in parts:
-            assert not isinstance(part, basestring)
+            assert not isinstance(part, basestring_)
             name, pos = part[0], part[1]
             if name == 'else':
                 result = True
@@ -283,7 +284,7 @@ class Template(object):
             if getattr(e, 'args', None):
                 arg0 = e.args[0]
             else:
-                arg0 = str(e)
+                arg0 = text(e)
             e.args = (self._add_line_info(arg0, pos),)
             raise exc_info[0], e, exc_info[2]
 
@@ -309,14 +310,11 @@ class Template(object):
                 try:
                     value = unicode(value)
                 except UnicodeDecodeError:
-                    value = str(value)
+                    value = bytes(value)
             else:
-                if not isinstance(value, basestring):
-                    if hasattr(value, '__unicode__'):
-                        value = unicode(value)
-                    else:
-                        value = str(value)
-                if (isinstance(value, unicode)
+                if not isinstance(value, basestring_):
+                    value = coerce_text(value)
+                if (is_unicode(value)
                     and self.default_encoding):
                     value = value.encode(self.default_encoding)
         except:
@@ -325,10 +323,10 @@ class Template(object):
             e.args = (self._add_line_info(e.args[0], pos),)
             raise exc_info[0], e, exc_info[2]
         else:
-            if self._unicode and isinstance(value, str):
+            if self._unicode and isinstance(value, bytes):
                 if not self.default_encoding:
                     raise UnicodeDecodeError(
-                        'Cannot decode str value %r into unicode '
+                        'Cannot decode bytes value %r into unicode '
                         '(no default_encoding provided)' % value)
                 try:
                     value = value.decode(self.default_encoding)
@@ -339,14 +337,13 @@ class Template(object):
                         e.start,
                         e.end,
                         e.reason + ' in string %r' % value)
-            elif not self._unicode and isinstance(value, unicode):
+            elif not self._unicode and is_unicode(value):
                 if not self.default_encoding:
                     raise UnicodeEncodeError(
-                        'Cannot encode unicode value %r into str '
+                        'Cannot encode unicode value %r into bytes '
                         '(no default_encoding provided)' % value)
                 value = value.encode(self.default_encoding)
             return value
-        
 
     def _add_line_info(self, msg, pos):
         msg = "%s at line %s column %s" % (
@@ -367,7 +364,7 @@ def paste_script_template_renderer(content, vars, filename=None):
 class bunch(dict):
 
     def __init__(self, **kw):
-        for name, value in kw.items():
+        for name, value in kw.iteritems():
             setattr(self, name, value)
 
     def __setattr__(self, name, value):
@@ -390,7 +387,7 @@ class bunch(dict):
 
     def __repr__(self):
         items = [
-            (k, v) for k, v in self.items()]
+            (k, v) for k, v in self.iteritems()]
         items.sort()
         return '<%s %s>' % (
             self.__class__.__name__,
@@ -416,28 +413,26 @@ def html_quote(value, force=True):
         return value.__html__()
     if value is None:
         return ''
-    if not isinstance(value, basestring):
-        if hasattr(value, '__unicode__'):
-            value = unicode(value)
-        else:
-            value = str(value)
-    value = cgi.escape(value, 1)
-    if isinstance(value, unicode):
-        value = value.encode('ascii', 'xmlcharrefreplace')
+    if not isinstance(value, basestring_):
+        value = coerce_text(value)
+    if sys.version >= "3" and isinstance(value, bytes):
+        value = cgi.escape(value.decode('latin1'), 1)
+        value = value.encode('latin1')
+    else:
+        value = cgi.escape(value, 1)
+    if sys.version < "3":
+        if is_unicode(value):
+            value = value.encode('ascii', 'xmlcharrefreplace')
     return value
 
 def url(v):
-    if not isinstance(v, basestring):
-        if hasattr(v, '__unicode__'):
-            v = unicode(v)
-        else:
-            v = str(v)
-    if isinstance(v, unicode):
+    v = coerce_text(v)
+    if is_unicode(v):
         v = v.encode('utf8')
-    return urllib.quote(v)
+    return url_quote(v)
 
 def attr(**kw):
-    kw = kw.items()
+    kw = list(kw.iteritems())
     kw.sort()
     parts = []
     for name, value in kw:
@@ -518,7 +513,7 @@ class TemplateDef(object):
         values = {}
         sig_args, var_args, var_kw, defaults = self._func_signature
         extra_kw = {}
-        for name, value in kw.items():
+        for name, value in kw.iteritems():
             if not var_kw and name not in sig_args:
                 raise TypeError(
                     'Unexpected argument %s' % name)
@@ -539,9 +534,9 @@ class TemplateDef(object):
                 break
             else:
                 raise TypeError(
-                    'Extra position arguments: %s' 
+                    'Extra position arguments: %s'
                     % ', '.join(repr(v) for v in args))
-        for name, value_expr in defaults.items():
+        for name, value_expr in defaults.iteritems():
             if name not in values:
                 values[name] = self._template._eval(
                     value_expr, self._ns, self._pos)
@@ -571,16 +566,24 @@ class TemplateObjectGetter(object):
 class _Empty(object):
     def __call__(self, *args, **kw):
         return self
+
     def __str__(self):
         return ''
+
     def __repr__(self):
         return 'Empty'
+
     def __unicode__(self):
         return u''
+
     def __iter__(self):
         return iter(())
-    def __nonzero__(self):
+
+    def __bool__(self):
         return False
+
+    if sys.version < "3":
+        __nonzero__ = __bool__
 
 Empty = _Empty()
 del _Empty
@@ -662,7 +665,7 @@ def trim_lex(tokens):
     """
     for i in range(len(tokens)):
         current = tokens[i]
-        if isinstance(tokens[i], basestring):
+        if isinstance(tokens[i], basestring_):
             # we don't trim this
             continue
         item = current[0]
@@ -676,8 +679,8 @@ def trim_lex(tokens):
             next = ''
         else:
             next = tokens[i+1]
-        if (not isinstance(next, basestring)
-            or not isinstance(prev, basestring)):
+        if (not isinstance(next, basestring_)
+            or not isinstance(prev, basestring_)):
             continue
         if ((not prev or trail_whitespace_re.search(prev)
              or (i == 1 and not prev.strip()))
@@ -699,7 +702,7 @@ def trim_lex(tokens):
                     next = next[m.end():]
                     tokens[i+1] = next
     return tokens
-        
+
 
 def find_position(string, index, line_offset):
     """Given a string and index, return (line, column)"""
@@ -726,7 +729,7 @@ def parse(s, name=None, line_offset=0):
         [('cond', (1, 3), ('if', (1, 3), 'x', ['a']), ('elif', (1, 12), 'y', ['b']), ('else', (1, 23), None, ['c']))]
 
     Some exceptions::
-        
+
         >>> parse('{{continue}}')
         Traceback (most recent call last):
             ...
@@ -764,7 +767,7 @@ def parse(s, name=None, line_offset=0):
     return result
 
 def parse_expr(tokens, name, context=()):
-    if isinstance(tokens[0], basestring):
+    if isinstance(tokens[0], basestring_):
         return tokens[0], tokens[1:]
     expr, pos = tokens[0]
     expr = expr.strip()
@@ -855,7 +858,7 @@ def parse_one_cond(tokens, name, context):
             return part, tokens
         next, tokens = parse_expr(tokens, name, context)
         content.append(next)
-        
+
 def parse_for(tokens, name, context):
     first, pos = tokens[0]
     tokens = tokens[1:]
@@ -956,7 +959,7 @@ def parse_signature(sig_text, name, pos):
 
     def get_token(pos=False):
         try:
-            tok_type, tok_string, (srow, scol), (erow, ecol), line = tokens.next()
+            tok_type, tok_string, (srow, scol), (erow, ecol), line = next(tokens)
         except StopIteration:
             return tokenize.ENDMARKER, ''
         if pos:
@@ -1003,7 +1006,7 @@ def parse_signature(sig_text, name, pos):
                 if tok_type == tokenize.ENDMARKER and nest_count:
                     raise TemplateError('Invalid signature: (%s)' % sig_text,
                                         position=pos, name=name)
-                if (not nest_count and 
+                if (not nest_count and
                     (tok_type == tokenize.ENDMARKER or (tok_type == tokenize.OP and tok_string == ','))):
                     default_expr = isolate_expression(sig_text, start_pos, end_pos)
                     defaults[var_name] = default_expr
@@ -1050,7 +1053,7 @@ def fill_command(args=None):
         args = sys.argv[1:]
     dist = pkg_resources.get_distribution('Paste')
     parser = optparse.OptionParser(
-        version=str(dist),
+        version=text(dist),
         usage=_fill_command_usage)
     parser.add_option(
         '-o', '--output',
@@ -1069,7 +1072,7 @@ def fill_command(args=None):
         help="Put the environment in as top-level variables")
     options, args = parser.parse_args(args)
     if len(args) < 1:
-        print 'You must give a template filename'
+        print('You must give a template filename')
         sys.exit(2)
     template_name = args[0]
     args = args[1:]
@@ -1078,7 +1081,7 @@ def fill_command(args=None):
         vars.update(os.environ)
     for value in args:
         if '=' not in value:
-            print 'Bad argument: %r' % value
+            print('Bad argument: %r' % value)
             sys.exit(2)
         name, value = value.split('=', 1)
         if name.startswith('py:'):
@@ -1107,5 +1110,3 @@ def fill_command(args=None):
 
 if __name__ == '__main__':
     fill_command()
-        
-    
