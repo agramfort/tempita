@@ -107,7 +107,7 @@ You can also instantiate a template from a filename with
 ``Template.from_filename(filename, namespace={}, encoding=None)``.
 This is like calling::
 
-    Template(open(filename, 'rb').read().decode(encoding), 
+    Template(open(filename, 'rb').read().decode(encoding),
              name=filename, namespace=namespace)
 
 Unicode
@@ -131,7 +131,7 @@ The Language
 ============
 
 The language is fairly simple; all the constructs look like
-``{{stuff}}``.  
+``{{stuff}}``.
 
 Substitution
 ------------
@@ -243,7 +243,7 @@ For anything more complicated, you can use blocks of Python code,
 like::
 
     {{py:x = 1}}
-    
+
     {{py:
     lots of code
     }}
@@ -284,7 +284,7 @@ lets you use attributes::
     >>> print bunch.b
     None
 
-This can be nice for passing options into a template.  
+This can be nice for passing options into a template.
 
 The other object is for use inside the template, and is part of the
 default namespace, ``looper``.  This can be used in ``for`` loops in
@@ -469,7 +469,11 @@ News
 hg tip
 ------
 
+* Python 3 compatible.
+
 * Fixed bug where file-relative filenames wouldn't work well.
+
+* Fixed the stripping of empty lines.
 
 0.4
 ---
