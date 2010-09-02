@@ -12,6 +12,7 @@ else:
             return s.encode('latin1')
         return bytes(s)
     basestring_ = (bytes, str)
+    bytes = bytes
 text = str
 
 if sys.version < "3":

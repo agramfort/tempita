@@ -39,4 +39,5 @@ You can install from the `svn repository
       test_suite='nose.collector',
       include_package_data=True,
       zip_safe=True,
+      use_2to3=True,
       )

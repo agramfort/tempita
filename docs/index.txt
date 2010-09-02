@@ -175,7 +175,8 @@ You can do an if statement with::
     {{endif}}
 
 Some of the blank lines will be removed when, as in this case, they
-only contain a single directive.  A trailing ``:`` is optional.
+only contain a single directive.  A trailing ``:`` is optional (like
+``{{if condition:}}``).
 
 for
 ---
@@ -187,7 +188,7 @@ Loops should be unsurprising::
     {{endfor}}
 
 See?  Unsurprising.  Note that nested tuples (like ``for a, (b, c)
-in...``) are not supported.
+in...``) are not supported (patches welcome).
 
 inherit & def
 -------------
@@ -201,7 +202,7 @@ From Python you must also pass in, to `Template`, a `get_template`
 function; the implementation for ``Template.from_filename(...)`` is::
 
     def get_file_template(name, from_template):
-        path = os.path.join(from_template.name, name)
+        path = os.path.join(os.path.dirname(from_template.name), name)
         return from_template.__class__.from_filename(
             path, namespace=from_template.namespace,
             get_template=from_template.get_template)
@@ -403,20 +404,11 @@ pos)`` and ``_exec(code, ns, pos)``, which evaluate and execute
 expressions and statements.  You could probably make this language
 safe with appropriate implementations of those methods.
 
-Including Tempita In Your Project
-=================================
-
-If you don't want to use Setuptools and have Tempita as a dependency,
-you can add the ``svn:external``
-``http://svn.pythonpaste.org/Tempita/trunk/tempita tempita`` (or link
-to a tag).  It's about 730 lines of code (not counting comments and
-whatnot), and 30Kb (60Kb with .pyc files).
-
 Command-line Use
 ================
 
-There's also a command-line version of the program.  In Python 2.5 you
-can run ``python -m tempita``; in previous versions you must run
+There's also a command-line version of the program.  In Python 2.5+
+you can run ``python -m tempita``; in previous versions you must run
 ``python path/to/tempita/__init__.py``.
 
 The usage::
@@ -438,7 +430,7 @@ The usage::
 
 So you can use it like::
 
-    $ python2.5 -m tempita --html mytemplate.tmpl \
+    $ python -m tempita --html mytemplate.tmpl \
     >     var1="$var1" var2="$var2" > mytemplate.html
 
 
@@ -462,8 +454,9 @@ Still To Do
 
   That would mean ``{{expr(result_of_template_code)}}``.  But maybe
   there should be another assignment form too, if you don't want to
-  immediately put the output in the code.  Probably defs could be used
-  for this, like::
+  immediately put the output in the code (``{{x =
+  call}}...{{endcall}}?``).  Probably defs could be used for this,
+  like::
 
     {{def something}}
       template code...

@@ -284,7 +284,7 @@ class Template(object):
             if getattr(e, 'args', None):
                 arg0 = e.args[0]
             else:
-                arg0 = text(e)
+                arg0 = coerce_text(e)
             e.args = (self._add_line_info(arg0, pos),)
             raise exc_info[0], e, exc_info[2]
 
