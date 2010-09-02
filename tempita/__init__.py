@@ -647,8 +647,8 @@ def lex(s, name=None, trim_whitespace=True, line_offset=0):
         chunks = trim_lex(chunks)
     return chunks
 
-statement_re = re.compile(r'^(?:if |elif |else |for |def |inherit |default |py:)')
-single_statements = ['endif', 'endfor', 'enddef', 'continue', 'break']
+statement_re = re.compile(r'^(?:if |elif |for |def |inherit |default |py:)')
+single_statements = ['else', 'endif', 'endfor', 'enddef', 'continue', 'break']
 trail_whitespace_re = re.compile(r'\n\r?[\t ]*$')
 lead_whitespace_re = re.compile(r'^[\t ]*\n')
 
@@ -663,6 +663,7 @@ def trim_lex(tokens):
        >>> trim_lex(tokens)
        [('if x', (1, 3)), 'x\n', ('endif', (3, 3)), 'y']
     """
+    last_trim = None
     for i in range(len(tokens)):
         current = tokens[i]
         if isinstance(tokens[i], basestring_):
@@ -682,12 +683,17 @@ def trim_lex(tokens):
         if (not isinstance(next, basestring_)
             or not isinstance(prev, basestring_)):
             continue
-        if ((not prev or trail_whitespace_re.search(prev)
-             or (i == 1 and not prev.strip()))
+        prev_ok = not prev or trail_whitespace_re.search(prev)
+        if i == 1 and not prev.strip():
+            prev_ok = True
+        if last_trim is not None and last_trim + 2 == i and not prev.strip():
+            prev_ok = 'last'
+        if (prev_ok
             and (not next or lead_whitespace_re.search(next)
                  or (i == len(tokens)-2 and not next.strip()))):
             if prev:
-                if i == 1 and not prev.strip():
+                if ((i == 1 and not prev.strip())
+                    or prev_ok == 'last'):
                     tokens[i-1] = ''
                 else:
                     m = trail_whitespace_re.search(prev)
@@ -695,6 +701,7 @@ def trim_lex(tokens):
                     prev = prev[:m.start()+1]
                     tokens[i-1] = prev
             if next:
+                last_trim = i
                 if i == len(tokens)-2 and not next.strip():
                     tokens[i+1] = ''
                 else:

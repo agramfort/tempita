@@ -9,7 +9,7 @@ example::
     'Hi Ian'
     >>> Template('Hi {{repr(name)}}').substitute(name='Ian')
     "Hi 'Ian'"
-    >>> Template('Hi {{name+1}}').substitute(name='Ian')
+    >>> Template('Hi {{name+1}}').substitute(name='Ian') # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
         ...
     TypeError: cannot concatenate 'str' and 'int' objects at line 1 column 6
@@ -59,7 +59,7 @@ Also Python blocks::
 
 And some syntax errors::
 
-    >>> t = Template('{{if x}}', name='foo.html')
+    >>> t = Template('{{if x}}', name='foo.html') # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
         ...
     TemplateError: No {{endif}} at line 1 column 3 in foo.html
@@ -180,3 +180,28 @@ Then we'll define a template that inherits::
     >>> print tmpl2.substitute(master='test2').strip()
     Something:
 
+Whitespace
+==========
+
+Whitespace is removed from templates when a directive is on a line by
+itself.  For example::
+
+    >>> #import sys; sys.debug = True
+    >>> tmpl = Template('''\
+    ... {{for i, item in enumerate(['a', 'b'])}}
+    ...     {{if i % 2 == 0}}
+    ...   <div class='even'>
+    ...     {{else}}
+    ...   <div class='odd'>
+    ...     {{endif}}
+    ...     {{item}}
+    ...   </div>
+    ... {{endfor}}''')
+    >>> print tmpl.substitute()
+      <div class='even'>
+        a
+      </div>
+      <div class='odd'>
+        b
+      </div>
+    <BLANKLINE>
