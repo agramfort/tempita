@@ -46,6 +46,7 @@ token_re = re.compile(r'\{\{|\}\}')
 in_re = re.compile(r'\s+in\s+')
 var_re = re.compile(r'^[a-z_][a-z0-9_]*$', re.I)
 
+
 class TemplateError(Exception):
     """Exception raised while parsing a template
     """
@@ -64,17 +65,21 @@ class TemplateError(Exception):
             msg += ' in %s' % self.name
         return msg
 
+
 class _TemplateContinue(Exception):
     pass
 
+
 class _TemplateBreak(Exception):
     pass
+
 
 def get_file_template(name, from_template):
     path = os.path.join(os.path.dirname(from_template.name), name)
     return from_template.__class__.from_filename(
         path, namespace=from_template.namespace,
         get_template=from_template.get_template)
+
 
 class Template(object):
 
@@ -352,14 +357,17 @@ class Template(object):
             msg += " in file %s" % self.name
         return msg
 
+
 def sub(content, **kw):
     name = kw.get('__name')
     tmpl = Template(content, name=name)
     return tmpl.substitute(kw)
 
+
 def paste_script_template_renderer(content, vars, filename=None):
     tmpl = Template(content, name=filename)
     return tmpl.substitute(vars)
+
 
 class bunch(dict):
 
@@ -397,16 +405,22 @@ class bunch(dict):
 ## HTML Templating
 ############################################################
 
+
 class html(object):
+
     def __init__(self, value):
         self.value = value
+
     def __str__(self):
         return self.value
+
     def __html__(self):
         return self.value
+
     def __repr__(self):
         return '<%s %r>' % (
             self.__class__.__name__, self.value)
+
 
 def html_quote(value, force=True):
     if not force and hasattr(value, '__html__'):
@@ -425,11 +439,13 @@ def html_quote(value, force=True):
             value = value.encode('ascii', 'xmlcharrefreplace')
     return value
 
+
 def url(v):
     v = coerce_text(v)
     if is_unicode(v):
         v = v.encode('utf8')
     return url_quote(v)
+
 
 def attr(**kw):
     kw = list(kw.iteritems())
@@ -442,6 +458,7 @@ def attr(**kw):
             name = name[:-1]
         parts.append('%s="%s"' % (html_quote(name), html_quote(value)))
     return html(' '.join(parts))
+
 
 class HTMLTemplate(Template):
 
@@ -465,11 +482,11 @@ class HTMLTemplate(Template):
         else:
             return plain
 
+
 def sub_html(content, **kw):
     name = kw.get('__name')
     tmpl = HTMLTemplate(content, name=name)
     return tmpl.substitute(kw)
-    return result
 
 
 class TemplateDef(object):
@@ -548,20 +565,28 @@ class TemplateDef(object):
             values[var_kw] = extra_kw
         return values
 
+
 class TemplateObject(object):
+
     def __init__(self, name):
         self.__name = name
         self.get = TemplateObjectGetter(self)
+
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, self.__name)
 
+
 class TemplateObjectGetter(object):
+
     def __init__(self, template_obj):
         self.__template_obj = template_obj
+
     def __getattr__(self, attr):
         return getattr(self.__template_obj, attr, Empty)
+
     def __repr__(self):
         return '<%s around %r>' % (self.__class__.__name__, self.__template_obj)
+
 
 class _Empty(object):
     def __call__(self, *args, **kw):
@@ -591,6 +616,7 @@ del _Empty
 ############################################################
 ## Lexing and Parsing
 ############################################################
+
 
 def lex(s, name=None, trim_whitespace=True, line_offset=0):
     """
@@ -652,6 +678,7 @@ single_statements = ['else', 'endif', 'endfor', 'enddef', 'continue', 'break']
 trail_whitespace_re = re.compile(r'\n\r?[\t ]*$')
 lead_whitespace_re = re.compile(r'^[\t ]*\n')
 
+
 def trim_lex(tokens):
     r"""
     Takes a lexed set of tokens, and removes whitespace when there is
@@ -675,12 +702,12 @@ def trim_lex(tokens):
         if not i:
             prev = ''
         else:
-            prev = tokens[i-1]
-        if i+1 >= len(tokens):
-            next = ''
+            prev = tokens[i - 1]
+        if i + 1 >= len(tokens):
+            next_chunk = ''
         else:
-            next = tokens[i+1]
-        if (not isinstance(next, basestring_)
+            next_chunk = tokens[i + 1]
+        if (not isinstance(next_chunk, basestring_)
             or not isinstance(prev, basestring_)):
             continue
         prev_ok = not prev or trail_whitespace_re.search(prev)
@@ -689,32 +716,33 @@ def trim_lex(tokens):
         if last_trim is not None and last_trim + 2 == i and not prev.strip():
             prev_ok = 'last'
         if (prev_ok
-            and (not next or lead_whitespace_re.search(next)
-                 or (i == len(tokens)-2 and not next.strip()))):
+            and (not next_chunk or lead_whitespace_re.search(next_chunk)
+                 or (i == len(tokens) - 2 and not next_chunk.strip()))):
             if prev:
                 if ((i == 1 and not prev.strip())
                     or prev_ok == 'last'):
-                    tokens[i-1] = ''
+                    tokens[i - 1] = ''
                 else:
                     m = trail_whitespace_re.search(prev)
                     # +1 to leave the leading \n on:
-                    prev = prev[:m.start()+1]
-                    tokens[i-1] = prev
-            if next:
+                    prev = prev[:m.start() + 1]
+                    tokens[i - 1] = prev
+            if next_chunk:
                 last_trim = i
-                if i == len(tokens)-2 and not next.strip():
-                    tokens[i+1] = ''
+                if i == len(tokens) - 2 and not next_chunk.strip():
+                    tokens[i + 1] = ''
                 else:
-                    m = lead_whitespace_re.search(next)
-                    next = next[m.end():]
-                    tokens[i+1] = next
+                    m = lead_whitespace_re.search(next_chunk)
+                    next_chunk = next_chunk[m.end():]
+                    tokens[i + 1] = next_chunk
     return tokens
 
 
 def find_position(string, index, line_offset):
     """Given a string and index, return (line, column)"""
     leading = string[:index].splitlines()
-    return (len(leading)+line_offset, len(leading[-1])+1)
+    return (len(leading) + line_offset, len(leading[-1]) + 1)
+
 
 def parse(s, name=None, line_offset=0):
     r"""
@@ -769,9 +797,10 @@ def parse(s, name=None, line_offset=0):
     tokens = lex(s, name=name, line_offset=line_offset)
     result = []
     while tokens:
-        next, tokens = parse_expr(tokens, name)
-        result.append(next)
+        next_chunk, tokens = parse_expr(tokens, name)
+        result.append(next_chunk)
     return result
+
 
 def parse_expr(tokens, name, context=()):
     if isinstance(tokens[0], basestring_):
@@ -825,6 +854,7 @@ def parse_expr(tokens, name, context=()):
         return ('comment', pos, tokens[0][0]), tokens[1:]
     return ('expr', pos, tokens[0][0]), tokens[1:]
 
+
 def parse_cond(tokens, name, context):
     start = tokens[0][1]
     pieces = []
@@ -837,8 +867,9 @@ def parse_cond(tokens, name, context):
         if (isinstance(tokens[0], tuple)
             and tokens[0][0] == 'endif'):
             return ('cond', start) + tuple(pieces), tokens[1:]
-        next, tokens = parse_one_cond(tokens, name, context)
-        pieces.append(next)
+        next_chunk, tokens = parse_one_cond(tokens, name, context)
+        pieces.append(next_chunk)
+
 
 def parse_one_cond(tokens, name, context):
     (first, pos), tokens = tokens[0], tokens[1:]
@@ -863,8 +894,9 @@ def parse_one_cond(tokens, name, context):
                  or tokens[0][0].startswith('elif ')
                  or tokens[0][0] == 'else')):
             return part, tokens
-        next, tokens = parse_expr(tokens, name, context)
-        content.append(next)
+        next_chunk, tokens = parse_expr(tokens, name, context)
+        content.append(next_chunk)
+
 
 def parse_for(tokens, name, context):
     first, pos = tokens[0]
@@ -897,8 +929,9 @@ def parse_for(tokens, name, context):
         if (isinstance(tokens[0], tuple)
             and tokens[0][0] == 'endfor'):
             return ('for', pos, vars, expr, content), tokens[1:]
-        next, tokens = parse_expr(tokens, name, context)
-        content.append(next)
+        next_chunk, tokens = parse_expr(tokens, name, context)
+        content.append(next_chunk)
+
 
 def parse_default(tokens, name, context):
     first, pos = tokens[0]
@@ -921,11 +954,13 @@ def parse_default(tokens, name, context):
     expr = parts[1].strip()
     return ('default', pos, var, expr), tokens[1:]
 
+
 def parse_inherit(tokens, name, context):
     first, pos = tokens[0]
     assert first.startswith('inherit ')
     expr = first.split(None, 1)[1]
     return ('inherit', pos, expr), tokens[1:]
+
 
 def parse_def(tokens, name, context):
     first, start = tokens[0]
@@ -954,8 +989,9 @@ def parse_def(tokens, name, context):
         if (isinstance(tokens[0], tuple)
             and tokens[0][0] == 'enddef'):
             return ('def', start, func_name, sig, content), tokens[1:]
-        next, tokens = parse_expr(tokens, name, context)
-        content.append(next)
+        next_chunk, tokens = parse_expr(tokens, name, context)
+        content.append(next_chunk)
+
 
 def parse_signature(sig_text, name, pos):
     tokens = tokenize.generate_tokens(StringIO(sig_text).readline)
@@ -1032,6 +1068,7 @@ def parse_signature(sig_text, name, pos):
                     unnest_type = {'(': ')', '[': ']', '{': '}'}[nest_type]
     return sig_args, var_arg, var_kw, defaults
 
+
 def isolate_expression(string, start_pos, end_pos):
     srow, scol = start_pos
     srow -= 1
@@ -1054,13 +1091,17 @@ Use py:arg=value to set a Python value; otherwise all values are
 strings.
 """
 
+
 def fill_command(args=None):
-    import sys, optparse, pkg_resources, os
+    import sys
+    import optparse
+    import pkg_resources
+    import os
     if args is None:
         args = sys.argv[1:]
     dist = pkg_resources.get_distribution('Paste')
     parser = optparse.OptionParser(
-        version=text(dist),
+        version=coerce_text(dist),
         usage=_fill_command_usage)
     parser.add_option(
         '-o', '--output',

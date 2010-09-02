@@ -1,6 +1,6 @@
 import sys
 
-__all__ = ['b', 'basestring_', 'getnext', 'bytes', 'next', 'is_unicode']
+__all__ = ['b', 'basestring_', 'bytes', 'next', 'is_unicode']
 
 if sys.version < "3":
     b = bytes = str
@@ -30,6 +30,7 @@ else:
 
     def is_unicode(obj):
         return isinstance(obj, str)
+
 
 def coerce_text(v):
     if not isinstance(v, basestring_):

@@ -23,6 +23,7 @@ from tempita.compat3 import basestring_
 
 __all__ = ['looper']
 
+
 class looper(object):
     """
     Helper for looping (particularly in templates)
@@ -44,6 +45,7 @@ class looper(object):
         return '<%s for %r>' % (
             self.__class__.__name__, self.seq)
 
+
 class looper_iter(object):
 
     def __init__(self, seq):
@@ -63,6 +65,7 @@ class looper_iter(object):
     if sys.version < "3":
         next = __next__
 
+
 class loop_pos(object):
 
     def __init__(self, seq, pos):
@@ -71,7 +74,7 @@ class loop_pos(object):
 
     def __repr__(self):
         return '<loop pos=%r at %r>' % (
-            self.seq[pos], pos)
+            self.seq[self.pos], self.pos)
 
     def index(self):
         return self.pos
@@ -87,7 +90,7 @@ class loop_pos(object):
 
     def __next__(self):
         try:
-            return self.seq[self.pos+1]
+            return self.seq[self.pos + 1]
         except IndexError:
             return None
     __next__ = property(__next__)
@@ -98,7 +101,7 @@ class loop_pos(object):
     def previous(self):
         if self.pos == 0:
             return None
-        return self.seq[self.pos-1]
+        return self.seq[self.pos - 1]
     previous = property(previous)
 
     def odd(self):
@@ -114,7 +117,7 @@ class loop_pos(object):
     first = property(first)
 
     def last(self):
-        return self.pos == len(self.seq)-1
+        return self.pos == len(self.seq) - 1
     last = property(last)
 
     def length(self):
