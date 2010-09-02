@@ -1,1 +1,4 @@
+syntax: glob
 Tempita.egg-info
+build/
+dist/
