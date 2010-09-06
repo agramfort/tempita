@@ -251,11 +251,11 @@ like::
 The first form allows statements, like an assignment or raising an
 exception.  The second form is for multiple lines.  If you have
 multiple lines, then ``{{py:`` must be on a line of its own and the
-code can't be indented (except for normal indenting in ``def x():``
-etc).
+code can't start out indented (but if you have something like ``def
+x():`` you would indent the body).
 
-These can't output any values, but they can calculate values and
-define functions.  So you can do something like::
+These blocks of code can't output any values, but they can calculate
+values and define functions.  So you can do something like::
 
     {{py:
     def pad(s):
@@ -384,8 +384,8 @@ It also adds a couple handy builtins:
             <div {{attr(width=width, class_=div_class)}}>
 
         Then it'll put in something like ``width="{{width}}"
-        class={{div_class}}``.  But any attribute that is None is left
-        out entirely.
+        class={{div_class}}``.  Any attribute with a value of None is
+        left out entirely.
 
 Extending Tempita
 =================
@@ -455,13 +455,13 @@ Still To Do
   That would mean ``{{expr(result_of_template_code)}}``.  But maybe
   there should be another assignment form too, if you don't want to
   immediately put the output in the code (``{{x =
-  call}}...{{endcall}}?``).  Probably defs could be used for this,
+  call}}...{{endcall}}?``).  For now defs could be used for this,
   like::
 
     {{def something}}
       template code...
     {{enddef}}
-    {{expr(something)}}
+    {{expr(something())}}
 
 News
 ====

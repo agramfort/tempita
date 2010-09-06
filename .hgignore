@@ -2,3 +2,4 @@ syntax: glob
 Tempita.egg-info
 build/
 dist/
+docs/_build/
