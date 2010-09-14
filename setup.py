@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import sys, os
 
-version = '0.4.1'
+version = '0.5'
 
 setup(name='Tempita',
       version=version,
@@ -24,10 +24,12 @@ You can install from the `svn repository
 ``easy_install Tempita==dev``.
 """,
       classifiers=[
-        'Development Status :: 4 - Beta',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT License',
-        'Topic :: Text Processing',
+          'Development Status :: 4 - Beta',
+          'Intended Audience :: Developers',
+          'License :: OSI Approved :: MIT License',
+          'Topic :: Text Processing',
+          'Programming Language :: Python :: 2',
+          'Programming Language :: Python :: 3',
       ],
       keywords='templating template language html',
       author='Ian Bicking',

@@ -466,8 +466,8 @@ Still To Do
 News
 ====
 
-hg tip
-------
+0.5
+---
 
 * Python 3 compatible.
 
