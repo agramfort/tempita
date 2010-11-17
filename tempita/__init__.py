@@ -42,7 +42,6 @@ from tempita.compat3 import bytes, basestring_, next, is_unicode, coerce_text
 __all__ = ['TemplateError', 'Template', 'sub', 'HTMLTemplate',
            'sub_html', 'html', 'bunch']
 
-token_re = re.compile(r'\{\{|\}\}')
 in_re = re.compile(r'\s+in\s+')
 var_re = re.compile(r'^[a-z_][a-z0-9_]*$', re.I)
 
@@ -93,8 +92,22 @@ class Template(object):
     default_inherit = None
 
     def __init__(self, content, name=None, namespace=None, stacklevel=None,
-                 get_template=None, default_inherit=None, line_offset=0):
+                 get_template=None, default_inherit=None, line_offset=0,
+                 delimeters=None):
         self.content = content
+
+        # set delimeters
+        if delimeters is None:
+            delimeters = (self.default_namespace['start_braces'],
+                          self.default_namespace['end_braces'])
+        else:
+            assert len(delimeters) == 2 and all([isinstance(delimeter, basestring)
+                                                 for delimeter in delimeters])
+            self.default_namespace = self.__class__.default_namespace.copy()
+            self.default_namespace['start_braces'] = delimeters[0]
+            self.default_namespace['end_braces'] = delimeters[1]
+        self.delimeters = delimeters
+        
         self._unicode = is_unicode(content)
         if name is None and stacklevel is not None:
             try:
@@ -115,7 +128,7 @@ class Template(object):
                 if lineno:
                     name += ':%s' % lineno
         self.name = name
-        self._parsed = parse(content, name=name, line_offset=line_offset)
+        self._parsed = parse(content, name=name, line_offset=line_offset, delimeters=self.delimeters)
         if namespace is None:
             namespace = {}
         self.namespace = namespace
@@ -358,9 +371,9 @@ class Template(object):
         return msg
 
 
-def sub(content, **kw):
+def sub(content, delimeters=None, **kw):
     name = kw.get('__name')
-    tmpl = Template(content, name=name)
+    tmpl = Template(content, name=name, delimeters=delimeters)
     return tmpl.substitute(kw)
 
 
@@ -618,7 +631,7 @@ del _Empty
 ############################################################
 
 
-def lex(s, name=None, trim_whitespace=True, line_offset=0):
+def lex(s, name=None, trim_whitespace=True, line_offset=0, delimeters=None):
     """
     Lex a string into chunks:
 
@@ -640,20 +653,27 @@ def lex(s, name=None, trim_whitespace=True, line_offset=0):
         TemplateError: {{ inside expression at line 1 column 10
 
     """
+    if delimeters is None:
+        delimeters = ( Template.default_namespace['start_braces'],
+                       Template.default_namespace['end_braces'] )
     in_expr = False
     chunks = []
     last = 0
     last_pos = (1, 1)
+    token_re = re.compile(r'%s|%s' % (re.escape(delimeters[0]),
+                                      re.escape(delimeters[1])))
     for match in token_re.finditer(s):
         expr = match.group(0)
         pos = find_position(s, match.end(), line_offset)
-        if expr == '{{' and in_expr:
-            raise TemplateError('{{ inside expression', position=pos,
+        if expr == delimeters[0] and in_expr:
+            raise TemplateError('%s inside expression' % delimeters[0],
+                                position=pos,
                                 name=name)
-        elif expr == '}}' and not in_expr:
-            raise TemplateError('}} outside expression', position=pos,
+        elif expr == delimeters[1] and not in_expr:
+            raise TemplateError('%s outside expression' % delimeters[1],
+                                position=pos,
                                 name=name)
-        if expr == '{{':
+        if expr == delimeters[0]:
             part = s[last:match.start()]
             if part:
                 chunks.append(part)
@@ -664,7 +684,7 @@ def lex(s, name=None, trim_whitespace=True, line_offset=0):
         last = match.end()
         last_pos = pos
     if in_expr:
-        raise TemplateError('No }} to finish last expression',
+        raise TemplateError('No %s to finish last expression' % delimeters[1],
                             name=name, position=last_pos)
     part = s[last:]
     if part:
@@ -744,7 +764,7 @@ def find_position(string, index, line_offset):
     return (len(leading) + line_offset, len(leading[-1]) + 1)
 
 
-def parse(s, name=None, line_offset=0):
+def parse(s, name=None, line_offset=0, delimeters=None):
     r"""
     Parses a string into a kind of AST
 
@@ -794,7 +814,10 @@ def parse(s, name=None, line_offset=0):
             ...
         TemplateError: Multi-line py blocks must start with a newline at line 1 column 3
     """
-    tokens = lex(s, name=name, line_offset=line_offset)
+    if delimeters is None:
+        delimeters = ( Template.default_namespace['start_braces'],
+                       Template.default_namespace['end_braces'] )
+    tokens = lex(s, name=name, line_offset=line_offset, delimeters=delimeters)
     result = []
     while tokens:
         next_chunk, tokens = parse_expr(tokens, name)
