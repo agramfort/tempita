@@ -149,6 +149,13 @@ If you want to have ``{{`` or ``}}`` in your template, you must use
 the built-in variables like ``{{start_braces}}`` and
 ``{{end_braces}}``.  There's no escape character.
 
+You may also specify the delimeters as an argument to the Template
+__init__ method:
+
+    >>> Template(content='Hello ${name}', delimeters=('${', '}))
+
+The delimeters argument must be of length two and both items must be strings.
+
 None, as a special case, is substituted as the empty string.
 
 Also there is a command for setting default values in your template::
