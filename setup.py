@@ -18,10 +18,6 @@ You can read about the `language
 <http://pythonpaste.org/tempita/#the-language>`_, the `interface
 <http://pythonpaste.org/tempita/#the-interface>`_, and there's nothing
 more to learn about it.
-
-You can install from the `svn repository
-<http://svn.pythonpaste.org/Tempita/trunk#Tempita-dev>`__ with
-``easy_install Tempita==dev``.
 """,
       classifiers=[
           'Development Status :: 4 - Beta',
