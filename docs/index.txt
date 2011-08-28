@@ -152,7 +152,8 @@ the built-in variables like ``{{start_braces}}`` and
 You may also specify the delimeters as an argument to the Template
 __init__ method:
 
-    >>> Template(content='Hello ${name}', delimeters=('${', '}'))
+    >>> tempita.Template(content='Hello ${name}', delimeters=('${', '}')).substitute(name='world')
+    'Hello world'
 
 The delimeters argument must be of length two and both items must be strings.
 
