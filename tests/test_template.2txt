@@ -110,12 +110,12 @@ in Python, but it's more useful in templates generally)::
     ...         print('%s:' % item[0].upper())
     ...     print(loop.number, item)
     A:
-    1 apple
-    2 asparagus
+    (1, 'apple')
+    (2, 'asparagus')
     B:
-    3 Banana
+    (3, 'Banana')
     O:
-    4 orange
+    (4, 'orange')
 
 It will also strip out empty lines, when there is a line that only
 contains a directive/statement (if/for, etc)::

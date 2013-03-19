@@ -37,7 +37,7 @@ import os
 import tokenize
 from cStringIO import StringIO
 from tempita._looper import looper
-from tempita.compat3 import bytes, basestring_, next, is_unicode, coerce_text
+from tempita.compat3 import PY3, bytes, basestring_, next, is_unicode, coerce_text
 
 __all__ = ['TemplateError', 'Template', 'sub', 'HTMLTemplate',
            'sub_html', 'html', 'bunch']
@@ -86,7 +86,7 @@ class Template(object):
         'start_braces': '{{',
         'end_braces': '}}',
         'looper': looper,
-        }
+    }
 
     default_encoding = 'utf8'
     default_inherit = None
@@ -101,13 +101,14 @@ class Template(object):
             delimeters = (self.default_namespace['start_braces'],
                           self.default_namespace['end_braces'])
         else:
-            assert len(delimeters) == 2 and all([isinstance(delimeter, basestring)
-                                                 for delimeter in delimeters])
+            assert len(delimeters) == 2 and all(
+                [isinstance(delimeter, basestring)
+                    for delimeter in delimeters])
             self.default_namespace = self.__class__.default_namespace.copy()
             self.default_namespace['start_braces'] = delimeters[0]
             self.default_namespace['end_braces'] = delimeters[1]
         self.delimeters = delimeters
-        
+
         self._unicode = is_unicode(content)
         if name is None and stacklevel is not None:
             try:
@@ -128,7 +129,9 @@ class Template(object):
                 if lineno:
                     name += ':%s' % lineno
         self.name = name
-        self._parsed = parse(content, name=name, line_offset=line_offset, delimeters=self.delimeters)
+        self._parsed = parse(
+            content, name=name, line_offset=line_offset,
+            delimeters=self.delimeters)
         if namespace is None:
             namespace = {}
         self.namespace = namespace
@@ -163,7 +166,8 @@ class Template(object):
                     "You can only give one positional argument")
             if not hasattr(args[0], 'items'):
                 raise TypeError(
-                    "If you pass in a single argument, you must pass in a dictionary-like object (with a .items() method); you gave %r"
+                    ("If you pass in a single argument, you must pass in a ",
+                     "dict-like object (with a .items() method); you gave %r")
                     % (args[0],))
             kw = args[0]
         ns = kw
@@ -178,7 +182,7 @@ class Template(object):
         return result
 
     def _interpret(self, ns):
-        __traceback_hide__ = True
+        # __traceback_hide__ = True
         parts = []
         defs = {}
         self._interpret_codes(self._parsed, ns, out=parts, defs=defs)
@@ -189,7 +193,7 @@ class Template(object):
         return ''.join(parts), defs, inherit
 
     def _interpret_inherit(self, body, defs, inherit_template, ns):
-        __traceback_hide__ = True
+        # __traceback_hide__ = True
         if not self.get_template:
             raise TemplateError(
                 'You cannot use inheritance without passing in get_template',
@@ -204,7 +208,7 @@ class Template(object):
         return templ.substitute(ns)
 
     def _interpret_codes(self, codes, ns, out, defs):
-        __traceback_hide__ = True
+        # __traceback_hide__ = True
         for item in codes:
             if isinstance(item, basestring_):
                 out.append(item)
@@ -212,7 +216,7 @@ class Template(object):
                 self._interpret_code(item, ns, out, defs)
 
     def _interpret_code(self, code, ns, out, defs):
-        __traceback_hide__ = True
+        # __traceback_hide__ = True
         name, pos = code[0], code[1]
         if name == 'py':
             self._exec(code[2], ns, pos)
@@ -247,15 +251,15 @@ class Template(object):
             name = code[2]
             signature = code[3]
             parts = code[4]
-            ns[name] = defs[name] = TemplateDef(self, name, signature, body=parts, ns=ns,
-                                                pos=pos)
+            ns[name] = defs[name] = TemplateDef(
+                self, name, signature, body=parts, ns=ns, pos=pos)
         elif name == 'comment':
             return
         else:
             assert 0, "Unknown code: %r" % name
 
     def _interpret_for(self, vars, expr, content, ns, out, defs):
-        __traceback_hide__ = True
+        # __traceback_hide__ = True
         for item in expr:
             if len(vars) == 1:
                 ns[vars[0]] = item
@@ -274,7 +278,7 @@ class Template(object):
                 break
 
     def _interpret_if(self, parts, ns, out, defs):
-        __traceback_hide__ = True
+        # __traceback_hide__ = True
         # @@: if/else/else gets through
         for part in parts:
             assert not isinstance(part, basestring_)
@@ -288,7 +292,7 @@ class Template(object):
                 break
 
     def _eval(self, code, ns, pos):
-        __traceback_hide__ = True
+        # __traceback_hide__ = True
         try:
             try:
                 value = eval(code, self.default_namespace, ns)
@@ -307,7 +311,7 @@ class Template(object):
             raise (exc_info[1], e, exc_info[2])
 
     def _exec(self, code, ns, pos):
-        __traceback_hide__ = True
+        # __traceback_hide__ = True
         try:
             exec(code, self.default_namespace, ns)
         except:
@@ -320,7 +324,7 @@ class Template(object):
             raise(exc_info[1], e, exc_info[2])
 
     def _repr(self, value, pos):
-        __traceback_hide__ = True
+        # __traceback_hide__ = True
         try:
             if value is None:
                 return ''
@@ -332,8 +336,7 @@ class Template(object):
             else:
                 if not isinstance(value, basestring_):
                     value = coerce_text(value)
-                if (is_unicode(value)
-                    and self.default_encoding):
+                if (is_unicode(value) and self.default_encoding):
                     value = value.encode(self.default_encoding)
         except:
             exc_info = sys.exc_info()
@@ -480,8 +483,7 @@ class HTMLTemplate(Template):
         html=html,
         attr=attr,
         url=url,
-        html_quote=html_quote,
-        ))
+        html_quote=html_quote))
 
     def _repr(self, value, pos):
         if hasattr(value, '__html__'):
@@ -598,7 +600,8 @@ class TemplateObjectGetter(object):
         return getattr(self.__template_obj, attr, Empty)
 
     def __repr__(self):
-        return '<%s around %r>' % (self.__class__.__name__, self.__template_obj)
+        return '<%s around %r>' % (
+            self.__class__.__name__, self.__template_obj)
 
 
 class _Empty(object):
@@ -632,27 +635,6 @@ del _Empty
 
 
 def lex(s, name=None, trim_whitespace=True, line_offset=0, delimeters=None):
-    """
-    Lex a string into chunks:
-
-        >>> lex('hey')
-        ['hey']
-        >>> lex('hey {{you}}')
-        ['hey ', ('you', (1, 7))]
-        >>> lex('hey {{')
-        Traceback (most recent call last):
-            ...
-        TemplateError: No }} to finish last expression at line 1 column 7
-        >>> lex('hey }}')
-        Traceback (most recent call last):
-            ...
-        TemplateError: }} outside expression at line 1 column 7
-        >>> lex('hey {{ {{')
-        Traceback (most recent call last):
-            ...
-        TemplateError: {{ inside expression at line 1 column 10
-
-    """
     if delimeters is None:
         delimeters = (Template.default_namespace['start_braces'],
                       Template.default_namespace['end_braces'])
@@ -693,6 +675,48 @@ def lex(s, name=None, trim_whitespace=True, line_offset=0, delimeters=None):
         chunks = trim_lex(chunks)
     return chunks
 
+lex.__doc__ = """
+Lex a string into chunks:
+
+    >>> lex('hey')
+    ['hey']
+    >>> lex('hey {{you}}')
+    ['hey ', ('you', (1, 7))]
+    >>> lex('hey {{')
+    Traceback (most recent call last):
+        ...
+    tempita.TemplateError: No }} to finish last expression at line 1 column 7
+    >>> lex('hey }}')
+    Traceback (most recent call last):
+        ...
+    tempita.TemplateError: }} outside expression at line 1 column 7
+    >>> lex('hey {{ {{')
+    Traceback (most recent call last):
+        ...
+    tempita.TemplateError: {{ inside expression at line 1 column 10
+
+""" if PY3 else """
+Lex a string into chunks:
+
+    >>> lex('hey')
+    ['hey']
+    >>> lex('hey {{you}}')
+    ['hey ', ('you', (1, 7))]
+    >>> lex('hey {{')
+    Traceback (most recent call last):
+        ...
+    TemplateError: No }} to finish last expression at line 1 column 7
+    >>> lex('hey }}')
+    Traceback (most recent call last):
+        ...
+    TemplateError: }} outside expression at line 1 column 7
+    >>> lex('hey {{ {{')
+    Traceback (most recent call last):
+        ...
+    TemplateError: {{ inside expression at line 1 column 10
+
+"""
+
 statement_re = re.compile(r'^(?:if |elif |for |def |inherit |default |py:)')
 single_statements = ['else', 'endif', 'endfor', 'enddef', 'continue', 'break']
 trail_whitespace_re = re.compile(r'\n\r?[\t ]*$')
@@ -700,16 +724,6 @@ lead_whitespace_re = re.compile(r'^[\t ]*\n')
 
 
 def trim_lex(tokens):
-    r"""
-    Takes a lexed set of tokens, and removes whitespace when there is
-    a directive on a line by itself:
-
-       >>> tokens = lex('{{if x}}\nx\n{{endif}}\ny', trim_whitespace=False)
-       >>> tokens
-       [('if x', (1, 3)), '\nx\n', ('endif', (3, 3)), '\ny']
-       >>> trim_lex(tokens)
-       [('if x', (1, 3)), 'x\n', ('endif', (3, 3)), 'y']
-    """
     last_trim = None
     for i in range(len(tokens)):
         current = tokens[i]
@@ -727,8 +741,9 @@ def trim_lex(tokens):
             next_chunk = ''
         else:
             next_chunk = tokens[i + 1]
-        if (not isinstance(next_chunk, basestring_)
-            or not isinstance(prev, basestring_)):
+        if (not
+                isinstance(next_chunk, basestring_)
+                or not isinstance(prev, basestring_)):
             continue
         prev_ok = not prev or trail_whitespace_re.search(prev)
         if i == 1 and not prev.strip():
@@ -739,8 +754,7 @@ def trim_lex(tokens):
             and (not next_chunk or lead_whitespace_re.search(next_chunk)
                  or (i == len(tokens) - 2 and not next_chunk.strip()))):
             if prev:
-                if ((i == 1 and not prev.strip())
-                    or prev_ok == 'last'):
+                if ((i == 1 and not prev.strip()) or prev_ok == 'last'):
                     tokens[i - 1] = ''
                 else:
                     m = trail_whitespace_re.search(prev)
@@ -757,6 +771,26 @@ def trim_lex(tokens):
                     tokens[i + 1] = next_chunk
     return tokens
 
+trim_lex.__doc__ = r"""
+    Takes a lexed set of tokens, and removes whitespace when there is
+    a directive on a line by itself:
+
+       >>> tokens = lex('{{if x}}\nx\n{{endif}}\ny', trim_whitespace=False)
+       >>> tokens
+       [('if x', (1, 3)), '\nx\n', ('endif', (3, 3)), '\ny']
+       >>> trim_lex(tokens)
+       [('if x', (1, 3)), 'x\n', ('endif', (3, 3)), 'y']
+    """ if PY3 else r"""
+    Takes a lexed set of tokens, and removes whitespace when there is
+    a directive on a line by itself:
+
+       >>> tokens = lex('{{if x}}\nx\n{{endif}}\ny', trim_whitespace=False)
+       >>> tokens
+       [('if x', (1, 3)), '\nx\n', ('endif', (3, 3)), '\ny']
+       >>> trim_lex(tokens)
+       [('if x', (1, 3)), 'x\n', ('endif', (3, 3)), 'y']
+    """
+
 
 def find_position(string, index, line_offset):
     """Given a string and index, return (line, column)"""
@@ -765,7 +799,18 @@ def find_position(string, index, line_offset):
 
 
 def parse(s, name=None, line_offset=0, delimeters=None):
-    r"""
+
+    if delimeters is None:
+        delimeters = (Template.default_namespace['start_braces'],
+                      Template.default_namespace['end_braces'])
+    tokens = lex(s, name=name, line_offset=line_offset, delimeters=delimeters)
+    result = []
+    while tokens:
+        next_chunk, tokens = parse_expr(tokens, name)
+        result.append(next_chunk)
+    return result
+
+parse.__doc__ = r"""
     Parses a string into a kind of AST
 
         >>> parse('{{x}}')
@@ -774,14 +819,75 @@ def parse(s, name=None, line_offset=0, delimeters=None):
         ['foo']
         >>> parse('{{if x}}test{{endif}}')
         [('cond', (1, 3), ('if', (1, 3), 'x', ['test']))]
-        >>> parse('series->{{for x in y}}x={{x}}{{endfor}}')
-        ['series->', ('for', (1, 11), ('x',), 'y', ['x=', ('expr', (1, 27), 'x')])]
+        >>> parse(
+        ...    'series->{{for x in y}}x={{x}}{{endfor}}'
+        ... )  #doctest: +NORMALIZE_WHITESPACE
+        ['series->',
+            ('for', (1, 11), ('x',), 'y', ['x=', ('expr', (1, 27), 'x')])]
         >>> parse('{{for x, y in z:}}{{continue}}{{endfor}}')
         [('for', (1, 3), ('x', 'y'), 'z', [('continue', (1, 21))])]
         >>> parse('{{py:x=1}}')
         [('py', (1, 3), 'x=1')]
-        >>> parse('{{if x}}a{{elif y}}b{{else}}c{{endif}}')
-        [('cond', (1, 3), ('if', (1, 3), 'x', ['a']), ('elif', (1, 12), 'y', ['b']), ('else', (1, 23), None, ['c']))]
+        >>> parse(
+        ...    '{{if x}}a{{elif y}}b{{else}}c{{endif}}'
+        ... )  #doctest: +NORMALIZE_WHITESPACE
+        [('cond', (1, 3), ('if', (1, 3), 'x', ['a']),
+            ('elif', (1, 12), 'y', ['b']), ('else', (1, 23), None, ['c']))]
+
+    Some exceptions::
+
+        >>> parse('{{continue}}')
+        Traceback (most recent call last):
+            ...
+        tempita.TemplateError: continue outside of for loop at line 1 column 3
+        >>> parse('{{if x}}foo')
+        Traceback (most recent call last):
+            ...
+        tempita.TemplateError: No {{endif}} at line 1 column 3
+        >>> parse('{{else}}')
+        Traceback (most recent call last):
+            ...
+        tempita.TemplateError: else outside of an if block at line 1 column 3
+        >>> parse('{{if x}}{{for x in y}}{{endif}}{{endfor}}')
+        Traceback (most recent call last):
+            ...
+        tempita.TemplateError: Unexpected endif at line 1 column 25
+        >>> parse('{{if}}{{endif}}')
+        Traceback (most recent call last):
+            ...
+        tempita.TemplateError: if with no expression at line 1 column 3
+        >>> parse('{{for x y}}{{endfor}}')
+        Traceback (most recent call last):
+            ...
+        tempita.TemplateError: Bad for (no "in") in 'x y' at line 1 column 3
+        >>> parse('{{py:x=1\ny=2}}')  #doctest: +NORMALIZE_WHITESPACE
+        Traceback (most recent call last):
+            ...
+        tempita.TemplateError: Multi-line py blocks must start
+            with a newline at line 1 column 3
+    """ if PY3 else r"""
+    Parses a string into a kind of AST
+
+        >>> parse('{{x}}')
+        [('expr', (1, 3), 'x')]
+        >>> parse('foo')
+        ['foo']
+        >>> parse('{{if x}}test{{endif}}')
+        [('cond', (1, 3), ('if', (1, 3), 'x', ['test']))]
+        >>> parse(
+        ...    'series->{{for x in y}}x={{x}}{{endfor}}'
+        ... )  #doctest: +NORMALIZE_WHITESPACE
+        ['series->',
+            ('for', (1, 11), ('x',), 'y', ['x=', ('expr', (1, 27), 'x')])]
+        >>> parse('{{for x, y in z:}}{{continue}}{{endfor}}')
+        [('for', (1, 3), ('x', 'y'), 'z', [('continue', (1, 21))])]
+        >>> parse('{{py:x=1}}')
+        [('py', (1, 3), 'x=1')]
+        >>> parse(
+        ...    '{{if x}}a{{elif y}}b{{else}}c{{endif}}'
+        ... )  #doctest: +NORMALIZE_WHITESPACE
+        [('cond', (1, 3), ('if', (1, 3), 'x', ['a']),
+            ('elif', (1, 12), 'y', ['b']), ('else', (1, 23), None, ['c']))]
 
     Some exceptions::
 
@@ -809,20 +915,12 @@ def parse(s, name=None, line_offset=0, delimeters=None):
         Traceback (most recent call last):
             ...
         TemplateError: Bad for (no "in") in 'x y' at line 1 column 3
-        >>> parse('{{py:x=1\ny=2}}')
+        >>> parse('{{py:x=1\ny=2}}')  #doctest: +NORMALIZE_WHITESPACE
         Traceback (most recent call last):
             ...
-        TemplateError: Multi-line py blocks must start with a newline at line 1 column 3
+        TemplateError: Multi-line py blocks must start
+            with a newline at line 1 column 3
     """
-    if delimeters is None:
-        delimeters = ( Template.default_namespace['start_braces'],
-                       Template.default_namespace['end_braces'] )
-    tokens = lex(s, name=name, line_offset=line_offset, delimeters=delimeters)
-    result = []
-    while tokens:
-        next_chunk, tokens = parse_expr(tokens, name)
-        result.append(next_chunk)
-    return result
 
 
 def parse_expr(tokens, name, context=()):
@@ -887,8 +985,7 @@ def parse_cond(tokens, name, context):
             raise TemplateError(
                 'Missing {{endif}}',
                 position=start, name=name)
-        if (isinstance(tokens[0], tuple)
-            and tokens[0][0] == 'endif'):
+        if (isinstance(tokens[0], tuple) and tokens[0][0] == 'endif'):
             return ('cond', start) + tuple(pieces), tokens[1:]
         next_chunk, tokens = parse_one_cond(tokens, name, context)
         pieces.append(next_chunk)
@@ -949,8 +1046,7 @@ def parse_for(tokens, name, context):
             raise TemplateError(
                 'No {{endfor}}',
                 position=pos, name=name)
-        if (isinstance(tokens[0], tuple)
-            and tokens[0][0] == 'endfor'):
+        if (isinstance(tokens[0], tuple) and tokens[0][0] == 'endfor'):
             return ('for', pos, vars, expr, content), tokens[1:]
         next_chunk, tokens = parse_expr(tokens, name, context)
         content.append(next_chunk)
@@ -963,8 +1059,8 @@ def parse_default(tokens, name, context):
     parts = first.split('=', 1)
     if len(parts) == 1:
         raise TemplateError(
-            "Expression must be {{default var=value}}; no = found in %r" % first,
-            position=pos, name=name)
+            "Expression must be {{default var=value}}; no = found in %r" %
+            first, position=pos, name=name)
     var = parts[0].strip()
     if ',' in var:
         raise TemplateError(
@@ -996,8 +1092,8 @@ def parse_def(tokens, name, context):
         func_name = first
         sig = ((), None, None, {})
     elif not first.endswith(')'):
-        raise TemplateError("Function definition doesn't end with ): %s" % first,
-                            position=start, name=name)
+        raise TemplateError("Function definition doesn't end with ): %s" %
+                            first, position=start, name=name)
     else:
         first = first[:-1]
         func_name, sig_text = first.split('(', 1)
@@ -1009,8 +1105,7 @@ def parse_def(tokens, name, context):
             raise TemplateError(
                 'Missing {{enddef}}',
                 position=start, name=name)
-        if (isinstance(tokens[0], tuple)
-            and tokens[0][0] == 'enddef'):
+        if (isinstance(tokens[0], tuple) and tokens[0][0] == 'enddef'):
             return ('def', start, func_name, sig, content), tokens[1:]
         next_chunk, tokens = parse_expr(tokens, name, context)
         content.append(next_chunk)
@@ -1025,7 +1120,8 @@ def parse_signature(sig_text, name, pos):
 
     def get_token(pos=False):
         try:
-            tok_type, tok_string, (srow, scol), (erow, ecol), line = next(tokens)
+            tok_type, tok_string, (srow, scol), (erow, ecol), line = next(
+                tokens)
         except StopIteration:
             return tokenize.ENDMARKER, ''
         if pos:
@@ -1037,7 +1133,8 @@ def parse_signature(sig_text, name, pos):
         tok_type, tok_string = get_token()
         if tok_type == tokenize.ENDMARKER:
             break
-        if tok_type == tokenize.OP and (tok_string == '*' or tok_string == '**'):
+        if tok_type == tokenize.OP and (
+                tok_string == '*' or tok_string == '**'):
             var_arg_type = tok_string
             tok_type, tok_string = get_token()
         if tok_type != tokenize.NAME:
@@ -1045,7 +1142,8 @@ def parse_signature(sig_text, name, pos):
                                 position=pos, name=name)
         var_name = tok_string
         tok_type, tok_string = get_token()
-        if tok_type == tokenize.ENDMARKER or (tok_type == tokenize.OP and tok_string == ','):
+        if tok_type == tokenize.ENDMARKER or (
+                tok_type == tokenize.OP and tok_string == ','):
             if var_arg_type == '*':
                 var_arg = var_name
             elif var_arg_type == '**':
@@ -1073,19 +1171,27 @@ def parse_signature(sig_text, name, pos):
                     raise TemplateError('Invalid signature: (%s)' % sig_text,
                                         position=pos, name=name)
                 if (not nest_count and
-                    (tok_type == tokenize.ENDMARKER or (tok_type == tokenize.OP and tok_string == ','))):
-                    default_expr = isolate_expression(sig_text, start_pos, end_pos)
+                    (tok_type == tokenize.ENDMARKER or
+                        (tok_type == tokenize.OP and tok_string == ','))):
+                    default_expr = isolate_expression(
+                        sig_text, start_pos, end_pos)
                     defaults[var_name] = default_expr
                     sig_args.append(var_name)
                     break
                 parts.append((tok_type, tok_string))
-                if nest_count and tok_type == tokenize.OP and tok_string == nest_type:
+                if nest_count \
+                        and tok_type == tokenize.OP \
+                        and tok_string == nest_type:
                     nest_count += 1
-                elif nest_count and tok_type == tokenize.OP and tok_string == unnest_type:
+                elif nest_count \
+                        and tok_type == tokenize.OP \
+                        and tok_string == unnest_type:
                     nest_count -= 1
                     if not nest_count:
                         nest_type = unnest_type = None
-                elif not nest_count and tok_type == tokenize.OP and tok_string in ('(', '[', '{'):
+                elif not nest_count \
+                        and tok_type == tokenize.OP \
+                        and tok_string in ('(', '[', '{'):
                     nest_type = tok_string
                     nest_count = 1
                     unnest_type = {'(': ')', '[': ']', '{': '}'}[nest_type]
@@ -1101,7 +1207,7 @@ def isolate_expression(string, start_pos, end_pos):
     if srow == erow:
         return lines[srow][scol:ecol]
     parts = [lines[srow][scol:]]
-    parts.extend(lines[srow+1:erow])
+    parts.extend(lines[srow + 1:erow])
     if erow < len(lines):
         # It'll sometimes give (end_row_past_finish, 0)
         parts.append(lines[erow][:ecol])
