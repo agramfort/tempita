@@ -1,0 +1,2 @@
+recursive-include tempita *.py
+graft tests

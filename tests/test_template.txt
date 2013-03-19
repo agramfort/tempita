@@ -107,8 +107,8 @@ in Python, but it's more useful in templates generally)::
     ...     elif item == 'orange':
     ...         assert loop.last
     ...     if loop.first_group(lambda i: i[0].upper()):
-    ...         print '%s:' % item[0].upper()
-    ...     print loop.number, item
+    ...         print('%s:' % item[0].upper())
+    ...     print(loop.number, item)
     A:
     1 apple
     2 asparagus
@@ -167,24 +167,24 @@ Then we'll define a template that inherits::
     ... This is the parent {{master}}. The block: {{self.block}}
     ... Then the body: {{self.body}}
     ... ''')
-    >>> print tmpl.substitute(master='test').strip()
+    >>> print(tmpl.substitute(master='test').strip())
     This is the parent test. The block: some text
     Then the body: Hi there!
     >>> tmpl2 = Template('''\
     ... {{def block(arg='hi_'+master):}}hey {{master}}: {{arg}}{{enddef}}
     ... ''', get_template=get_template, default_inherit='super_test')
-    >>> print tmpl2.substitute(master='test2').strip()
+    >>> print(tmpl2.substitute(master='test2').strip())
     This is the parent test2. The block: hey test2: hi_test2
     Then the body:
     >>> super_test = Template('''\
     ... The block: {{self.block('blah')}}
     ... ''')
-    >>> print tmpl2.substitute(master='test2').strip()
+    >>> print(tmpl2.substitute(master='test2').strip())
     The block: hey test2: blah
     >>> super_test = Template('''\
     ... Something: {{self.get.something('hi')}}
     ... ''')
-    >>> print tmpl2.substitute(master='test2').strip()
+    >>> print(tmpl2.substitute(master='test2').strip())
     Something:
 
 Whitespace
@@ -204,7 +204,7 @@ itself.  For example::
     ...     {{item}}
     ...   </div>
     ... {{endfor}}''')
-    >>> print tmpl.substitute()
+    >>> print(tmpl.substitute())
       <div class='even'>
         a
       </div>
