@@ -32,12 +32,13 @@ If there are syntax errors ``TemplateError`` will be raised.
 import re
 import sys
 import cgi
-from urllib import quote as url_quote
+import six
+from six.moves.urllib.parse import quote as url_quote
 import os
 import tokenize
-from cStringIO import StringIO
-from tempita._looper import looper
-from tempita.compat3 import PY3, bytes, basestring_, next, is_unicode, coerce_text
+from six.moves import cStringIO as StringIO
+from ._looper import looper
+from .compat3 import PY3, bytes, basestring_, next, is_unicode, coerce_text
 
 __all__ = ['TemplateError', 'Template', 'sub', 'HTMLTemplate',
            'sub_html', 'html', 'bunch']
@@ -330,7 +331,9 @@ class Template(object):
                 return ''
             if self._unicode:
                 try:
-                    value = unicode(value)
+                    value = str(value)
+                    if not is_unicode(value):
+                        value = value.decode('utf-8')
                 except UnicodeDecodeError:
                     value = bytes(value)
             else:
@@ -342,7 +345,8 @@ class Template(object):
             exc_info = sys.exc_info()
             e = exc_info[1]
             e.args = (self._add_line_info(e.args[0], pos),)
-            raise(exc_info[1], e, exc_info[2])
+            # raise(exc_info[1], e, exc_info[2])
+            raise(e)
         else:
             if self._unicode and isinstance(value, bytes):
                 if not self.default_encoding:
