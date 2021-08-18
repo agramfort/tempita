@@ -139,6 +139,7 @@ class Template(object):
         if default_inherit is not None:
             self.default_inherit = default_inherit
 
+    @classmethod
     def from_filename(cls, filename, namespace=None, encoding=None,
                       default_inherit=None, get_template=get_file_template):
         f = open(filename, 'rb')
@@ -148,8 +149,6 @@ class Template(object):
             c = c.decode(encoding)
         return cls(content=c, name=filename, namespace=namespace,
                    default_inherit=default_inherit, get_template=get_template)
-
-    from_filename = classmethod(from_filename)
 
     def __repr__(self):
         return '<%s %s name=%r>' % (
