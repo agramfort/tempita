@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-from setuptools import find_packages
 import sys
-import os
 
 # Ridiculous as it may seem, we need to import multiprocessing and logging here
 # in order to get tests to pass smoothly on python 2.7.
