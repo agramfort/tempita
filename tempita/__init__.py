@@ -1230,7 +1230,6 @@ def fill_command(args=None):
     import sys
     import optparse
     import pkg_resources
-    import os
     if args is None:
         args = sys.argv[1:]
     dist = pkg_resources.get_distribution('Paste')
